@@ -42,11 +42,10 @@ def gateway_required(func):
         try:
             return func(self, *args, **kwargs)
         finally:
-            print('clean conn...')
-            # if self.gateway is not None:
-            #     self.gateway.close(hard=False)
-            #     self.gateway = None
-            #     self.client = None
+            if self.gateway is not None:
+                self.gateway.close(hard=False)
+                self.gateway = None
+                self.client = None
     return _wrapper
 
 
@@ -66,27 +65,21 @@ class NapariControl(BaseControl):
             x.add_argument("object", type=napari_type,
                            help="Object to view")
 
+
     @gateway_required
     def view(self, args):
-        self.ctx.out("View image....")
 
         if isinstance(args.object, ImageI):
             img = self._lookup(self.gateway, "Image", args.object.id)
-            print(img.name)
-
-            # session_id = self.gateway._sessionUuid
+            self.ctx.out("View image: %s" % img.name)
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
-                load_omero_image(viewer, args.object.id, self.gateway)
-
-                print('view close...')
-                self.gateway.close(hard=False)
-                self.gateway = None
+                self.load_omero_image(viewer, args.object.id, self.gateway)
 
 
     def _lookup(self, gateway, type, oid):
-        # TODO: move _lookup to a _configure type
+        """Find object of type by ID."""
         gateway.SERVICE_OPTS.setOmeroGroup('-1')
         obj = gateway.getObject(type, oid)
         if not obj:
@@ -94,69 +87,62 @@ class NapariControl(BaseControl):
         return obj
 
 
-def get_z_stack(img, c=0, t=0):
-    zct_list = [(z, c, t) for z in range(img.getSizeZ())]
-    pixels = img.getPrimaryPixels()
-    return numpy.array(list(pixels.getPlanes(zct_list)))
+    def get_t_z_stack(self, img, c=0):
+        sz = img.getSizeZ()
+        st = img.getSizeT()
+        # get all planes we need
+        zct_list = [(z, c, t) for z in range(sz) for t in range(st)]
+        pixels = img.getPrimaryPixels()
+        planes = []
+        for p in pixels.getPlanes(zct_list):
+            self.ctx.out(".", newline=False)
+            planes.append(p)
+        self.ctx.out("")
+        # arrange plane list into 2D numpy array of planes
+        z_stacks = []
+        for t in range(st):
+            z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
+        return numpy.array(z_stacks)
 
 
-def get_t_z_stack(img, c=0):
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    zct_list = [(z, c, t) for z in range(sz) for t in range(st)]
-    pixels = img.getPrimaryPixels()
-    planes = list(pixels.getPlanes(zct_list))
-    z_stacks = []
-    for t in range(st):
-        print('T: %s' % t)
-        print(len(planes[t * sz: (t + 1) * sz]))
-        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
-    return numpy.array(z_stacks)
+    def load_omero_image(self, viewer, image_id, conn):
+        """
+        Entry point - can be called to initially load an image
+        from OMERO, passing in session_id
+        OR, with session_id None, 
+        lookup session_id from layers already in napari viewer
+        """
+
+        image = conn.getObject("Image", image_id)
+        layers = []
+        for c, channel in enumerate(image.getChannels()):
+            self.ctx.out('loading channel %s:' % c, newline=False)
+            l = self.load_omero_channel(viewer, image, channel, c)
+            layers.append(l)
+        return l
 
 
-def load_omero_image(viewer, image_id, conn):
-    """
-    Entry point - can be called to initially load an image
-    from OMERO, passing in session_id
-    OR, with session_id None, 
-    lookup session_id from layers already in napari viewer
-    """
-    # if session_id is None:
-    #     # lookup session_id from layers already in napari viewer
-    #     session_id = get_session_id(viewer)
-
-    # conn = BlitzGateway(port=4064, host="localhost")
-    # conn.connect(sUuid=session_id)
-
-    image = conn.getObject("Image", image_id)
-    layers = []
-    for c, channel in enumerate(image.getChannels()):
-        print('loading channel %s' % c)
-        l = load_omero_channel(viewer, image, channel, c)
-        layers.append(l)
-    return l
-
-
-def load_omero_channel(viewer, image, channel, c_index):
-    session_id = image._conn._sessionUuid
-    data = get_t_z_stack(image, c=c_index)
-    # use current rendering settings from OMERO
-    color = channel.getColor().getRGB()
-    color = [r/256 for r in color]
-    cmap = Colormap([[0, 0, 0], color])
-    z_scale = None
-    # Z-scale for 3D viewing
-    if image.getSizeZ() > 1:
-        size_x = image.getPixelSizeX()
-        size_z = image.getPixelSizeZ()
-        z_scale = [1, size_z / size_x, 1, 1]
-    name=channel.getLabel()
-    return viewer.add_image(data, blending='additive',
-                        colormap=('from_omero', cmap),
-                        scale=z_scale,
-                        metadata={'image_id': image.id,
-                                'session_id': session_id},
-                        name=name)
+    def load_omero_channel(self, viewer, image, channel, c_index):
+        session_id = image._conn._sessionUuid
+        data = self.get_t_z_stack(image, c=c_index)
+        # use current rendering settings from OMERO
+        color = channel.getColor().getRGB()
+        color = [r/256 for r in color]
+        cmap = Colormap([[0, 0, 0], color])
+        z_scale = None
+        # Z-scale for 3D viewing
+        if image.getSizeZ() > 1:
+            size_x = image.getPixelSizeX()
+            size_z = image.getPixelSizeZ()
+            z_scale = [1, size_z / size_x, 1, 1]
+        name=channel.getLabel()
+        return viewer.add_image(data, blending='additive',
+                            colormap=('from_omero', cmap),
+                            scale=z_scale,
+                            # for saving data/ROIs back to OMERO
+                            metadata={'image_id': image.id,
+                                      'session_id': session_id},
+                            name=name)
 
 try:
     register("napari", NapariControl, HELP)
