@@ -75,7 +75,7 @@ class NapariControl(BaseControl):
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
-                self.load_omero_image(viewer, args.object.id, self.gateway)
+                self.load_omero_image(viewer, img, self.gateway)
 
 
     def _lookup(self, gateway, type, oid):
@@ -105,7 +105,7 @@ class NapariControl(BaseControl):
         return numpy.array(z_stacks)
 
 
-    def load_omero_image(self, viewer, image_id, conn):
+    def load_omero_image(self, viewer, image, conn):
         """
         Entry point - can be called to initially load an image
         from OMERO, passing in session_id
@@ -113,7 +113,6 @@ class NapariControl(BaseControl):
         lookup session_id from layers already in napari viewer
         """
 
-        image = conn.getObject("Image", image_id)
         layers = []
         for c, channel in enumerate(image.getChannels()):
             self.ctx.out('loading channel %s:' % c, newline=False)
@@ -123,7 +122,7 @@ class NapariControl(BaseControl):
 
 
     def load_omero_channel(self, viewer, image, channel, c_index):
-        session_id = image._conn._sessionUuid
+        session_id = image._conn._getSessionId()
         data = self.get_t_z_stack(image, c=c_index)
         # use current rendering settings from OMERO
         color = channel.getColor().getRGB()
@@ -143,6 +142,59 @@ class NapariControl(BaseControl):
                             metadata={'image_id': image.id,
                                       'session_id': session_id},
                             name=name)
+
+def save_rois(viewer):
+    # Usage: In napari, open console and
+    # >>> from omero_napari import *
+    # >>> save_rois(viewer)
+
+    session_id = get_session_id(viewer)
+    conn = BlitzGateway(port=4064, host="localhost")
+    print('session_id: %s' % session_id)
+    conn.connect(sUuid=session_id)
+
+    image_id = get_image_id(viewer)
+
+    for layer in viewer.layers:
+        if layer.name.startswith("Points"):
+            for p in layer.data:
+                z = p[0]
+                y = p[1]
+                x = p[2]
+
+                point = PointI()
+                point.x = rdouble(x)
+                point.y = rdouble(y)
+                point.theZ = rint(z)
+                point.theT = rint(0)
+                roi = create_roi(conn, image_id, [point])
+                print("Created ROI: %s" % roi.id.val)
+
+    conn.close()
+
+
+def get_layers_metadata(viewer, key):
+    for layer in viewer.layers:
+        if key in layer.metadata:
+            return layer.metadata[key]
+
+
+def get_image_id(viewer):
+    return get_layers_metadata(viewer, 'image_id')
+
+
+def get_session_id(viewer):
+    return get_layers_metadata(viewer, 'session_id')
+
+
+def create_roi(conn, img_id, shapes):
+    updateService = conn.getUpdateService()
+    roi = RoiI()
+    roi.setImage(ImageI(img_id, False))
+    for shape in shapes:
+        roi.addShape(shape)
+    return updateService.saveAndReturnObject(roi)
+
 
 try:
     register("napari", NapariControl, HELP)
