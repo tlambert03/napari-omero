@@ -1,3 +1,11 @@
 # omero-napari
 
 OMERO CLI client to open images in the napari viewer
+
+
+Requires Python 3.6 or higher:
+
+    pip install -i https://test.pypi.org/simple/ omero-napari==0.0.1
+
+    omero napari view Image:1
+
