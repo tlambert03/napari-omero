@@ -135,10 +135,14 @@ class NapariControl(BaseControl):
         cmap = Colormap([[0, 0, 0], color])
         z_scale = None
         # Z-scale for 3D viewing
-        if image.getSizeZ() > 1:
-            size_x = image.getPixelSizeX()
-            size_z = image.getPixelSizeZ()
-            z_scale = [1, size_z / size_x, 1, 1]
+        #  NB: This can cause unexpected behaviour
+        #  https://forum.image.sc/t/napari-non-integer-step-size/31847
+        #  And breaks viewer.dims.set_point(idx, position)
+        # if image.getSizeZ() > 1:
+        #     size_x = image.getPixelSizeX()
+        #     size_z = image.getPixelSizeZ()
+        #     if size_x is not None and size_z is not None:
+        #         z_scale = [1, size_z / size_x, 1, 1]
         name=channel.getLabel()
         return viewer.add_image(data, blending='additive',
                             colormap=('from_omero', cmap),
