@@ -75,7 +75,7 @@ class NapariControl(BaseControl):
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
-                self.load_omero_image(viewer, img, self.gateway)
+                load_omero_image(self.gateway, viewer, img)
 
 
     def _lookup(self, gateway, type, oid):
@@ -87,96 +87,96 @@ class NapariControl(BaseControl):
         return obj
 
 
-    def get_t_z_stack(self, img, c=0):
-        sz = img.getSizeZ()
-        st = img.getSizeT()
-        # get all planes we need
-        zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
-        pixels = img.getPrimaryPixels()
-        planes = []
-        for p in pixels.getPlanes(zct_list):
-            self.ctx.out(".", newline=False)
-            planes.append(p)
-        self.ctx.out("")
-        if sz == 1 or st == 1:
-            return numpy.array(planes)
-        # arrange plane list into 2D numpy array of planes
-        z_stacks = []
-        for t in range(st):
-            z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
-        return numpy.array(z_stacks)
+def get_t_z_stack(img, c=0):
+    sz = img.getSizeZ()
+    st = img.getSizeT()
+    # get all planes we need
+    zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
+    pixels = img.getPrimaryPixels()
+    planes = []
+    for p in pixels.getPlanes(zct_list):
+        # self.ctx.out(".", newline=False)
+        planes.append(p)
+    # self.ctx.out("")
+    if sz == 1 or st == 1:
+        return numpy.array(planes)
+    # arrange plane list into 2D numpy array of planes
+    z_stacks = []
+    for t in range(st):
+        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
+    return numpy.array(z_stacks)
 
 
-    def load_omero_image(self, viewer, image, conn):
-        """
-        Entry point - can be called to initially load an image
-        from OMERO, passing in session_id
-        OR, with session_id None, 
-        lookup session_id from layers already in napari viewer
-        """
+def load_omero_image(conn, viewer, image):
+    """
+    Entry point - can be called to initially load an image
+    from OMERO, passing in session_id
+    OR, with session_id None, 
+    lookup session_id from layers already in napari viewer
+    """
 
-        layers = []
-        for c, channel in enumerate(image.getChannels()):
-            self.ctx.out('loading channel %s:' % c, newline=False)
-            l = self.load_omero_channel(viewer, image, channel, c)
-            layers.append(l)
+    layers = []
+    for c, channel in enumerate(image.getChannels()):
+        # self.ctx.out('loading channel %s:' % c, newline=False)
+        l = load_omero_channel(viewer, image, channel, c)
+        layers.append(l)
 
-        self.set_dims_defaults(viewer, image)
-        self.set_dims_labels(viewer, image)
-        return l
-
-
-    def load_omero_channel(self, viewer, image, channel, c_index):
-        session_id = image._conn._getSessionId()
-        data = self.get_t_z_stack(image, c=c_index)
-        # use current rendering settings from OMERO
-        color = channel.getColor().getRGB()
-        color = [r/256 for r in color]
-        cmap = Colormap([[0, 0, 0], color])
-        z_scale = None
-        # Z-scale for 3D viewing
-        #  NB: This can cause unexpected behaviour
-        #  https://forum.image.sc/t/napari-non-integer-step-size/31847
-        #  And breaks viewer.dims.set_point(idx, position)
-        # if image.getSizeZ() > 1:
-        #     size_x = image.getPixelSizeX()
-        #     size_z = image.getPixelSizeZ()
-        #     if size_x is not None and size_z is not None:
-        #         z_scale = [1, size_z / size_x, 1, 1]
-        name=channel.getLabel()
-        return viewer.add_image(data, blending='additive',
-                            colormap=('from_omero', cmap),
-                            scale=z_scale,
-                            # for saving data/ROIs back to OMERO
-                            metadata={'image_id': image.id,
-                                      'session_id': session_id},
-                            name=name)
+    set_dims_defaults(viewer, image)
+    set_dims_labels(viewer, image)
+    return l
 
 
-    def set_dims_labels(self, viewer, image):
+def load_omero_channel(viewer, image, channel, c_index):
+    session_id = image._conn._getSessionId()
+    data = get_t_z_stack(image, c=c_index)
+    # use current rendering settings from OMERO
+    color = channel.getColor().getRGB()
+    color = [r/256 for r in color]
+    cmap = Colormap([[0, 0, 0], color])
+    z_scale = None
+    # Z-scale for 3D viewing
+    #  NB: This can cause unexpected behaviour
+    #  https://forum.image.sc/t/napari-non-integer-step-size/31847
+    #  And breaks viewer.dims.set_point(idx, position)
+    # if image.getSizeZ() > 1:
+    #     size_x = image.getPixelSizeX()
+    #     size_z = image.getPixelSizeZ()
+    #     if size_x is not None and size_z is not None:
+    #         z_scale = [1, size_z / size_x, 1, 1]
+    name=channel.getLabel()
+    return viewer.add_image(data, blending='additive',
+                        colormap=('from_omero', cmap),
+                        scale=z_scale,
+                        # for saving data/ROIs back to OMERO
+                        metadata={'image_id': image.id,
+                                    'session_id': session_id},
+                        name=name)
 
-        # dims (t, z, y, x) for 5D image
-        dims = []
-        if image.getSizeT() > 1:
-            dims.append("T")
-        if image.getSizeZ() > 1:
-            dims.append("Z")
 
-        for idx, label in enumerate(dims):
-            viewer.dims.set_axis_label(idx, label)
+def set_dims_labels(viewer, image):
+
+    # dims (t, z, y, x) for 5D image
+    dims = []
+    if image.getSizeT() > 1:
+        dims.append("T")
+    if image.getSizeZ() > 1:
+        dims.append("Z")
+
+    for idx, label in enumerate(dims):
+        viewer.dims.set_axis_label(idx, label)
 
 
-    def set_dims_defaults(self, viewer, image):
+def set_dims_defaults(viewer, image):
 
-        # dims (t, z, y, x) for 5D image
-        dims = []
-        if image.getSizeT() > 1:
-            dims.append(image.getDefaultT())
-        if image.getSizeZ() > 1:
-            dims.append(image.getDefaultZ())
+    # dims (t, z, y, x) for 5D image
+    dims = []
+    if image.getSizeT() > 1:
+        dims.append(image.getDefaultT())
+    if image.getSizeZ() > 1:
+        dims.append(image.getDefaultZ())
 
-        for idx, position in enumerate(dims):
-            viewer.dims.set_point(idx, position)
+    for idx, position in enumerate(dims):
+        viewer.dims.set_point(idx, position)
 
 
 def save_rois(viewer):
