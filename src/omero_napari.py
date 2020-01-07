@@ -91,13 +91,15 @@ class NapariControl(BaseControl):
         sz = img.getSizeZ()
         st = img.getSizeT()
         # get all planes we need
-        zct_list = [(z, c, t) for z in range(sz) for t in range(st)]
+        zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
         pixels = img.getPrimaryPixels()
         planes = []
         for p in pixels.getPlanes(zct_list):
             self.ctx.out(".", newline=False)
             planes.append(p)
         self.ctx.out("")
+        if sz == 1 or st == 1:
+            return numpy.array(planes)
         # arrange plane list into 2D numpy array of planes
         z_stacks = []
         for t in range(st):
@@ -118,6 +120,9 @@ class NapariControl(BaseControl):
             self.ctx.out('loading channel %s:' % c, newline=False)
             l = self.load_omero_channel(viewer, image, channel, c)
             layers.append(l)
+
+        self.set_dims_defaults(viewer, image)
+        self.set_dims_labels(viewer, image)
         return l
 
 
@@ -142,6 +147,33 @@ class NapariControl(BaseControl):
                             metadata={'image_id': image.id,
                                       'session_id': session_id},
                             name=name)
+
+
+    def set_dims_labels(self, viewer, image):
+
+        # dims (t, z, y, x) for 5D image
+        dims = []
+        if image.getSizeT() > 1:
+            dims.append("T")
+        if image.getSizeZ() > 1:
+            dims.append("Z")
+
+        for idx, label in enumerate(dims):
+            viewer.dims.set_axis_label(idx, label)
+
+
+    def set_dims_defaults(self, viewer, image):
+
+        # dims (t, z, y, x) for 5D image
+        dims = []
+        if image.getSizeT() > 1:
+            dims.append(image.getDefaultT())
+        if image.getSizeZ() > 1:
+            dims.append(image.getDefaultZ())
+
+        for idx, position in enumerate(dims):
+            viewer.dims.set_point(idx, position)
+
 
 def save_rois(viewer):
     # Usage: In napari, open console and
