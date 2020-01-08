@@ -75,7 +75,7 @@ class NapariControl(BaseControl):
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
-                load_omero_image(self.gateway, viewer, img)
+                load_omero_image(viewer, img)
 
 
     def _lookup(self, gateway, type, oid):
@@ -87,34 +87,14 @@ class NapariControl(BaseControl):
         return obj
 
 
-def get_t_z_stack(img, c=0):
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    # get all planes we need
-    zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
-    pixels = img.getPrimaryPixels()
-    planes = []
-    for p in pixels.getPlanes(zct_list):
-        # self.ctx.out(".", newline=False)
-        planes.append(p)
-    # self.ctx.out("")
-    if sz == 1 or st == 1:
-        return numpy.array(planes)
-    # arrange plane list into 2D numpy array of planes
-    z_stacks = []
-    for t in range(st):
-        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
-    return numpy.array(z_stacks)
-
-
-def load_omero_image(conn, viewer, image):
+def load_omero_image(viewer, image):
     """
     Entry point - can be called to initially load an image
-    from OMERO, passing in session_id
-    OR, with session_id None, 
-    lookup session_id from layers already in napari viewer
-    """
+    from OMERO into the napari viewer
 
+    :param  viewer:     napari viewer instance
+    :param  image:      omero.gateway.ImageWrapper
+    """
     layers = []
     for c, channel in enumerate(image.getChannels()):
         # self.ctx.out('loading channel %s:' % c, newline=False)
@@ -127,6 +107,12 @@ def load_omero_image(conn, viewer, image):
 
 
 def load_omero_channel(viewer, image, channel, c_index):
+    """
+    Loads a channel from OMERO image into the napari viewer
+
+    :param  viewer:     napari viewer instance
+    :param  image:      omero.gateway.ImageWrapper
+    """
     session_id = image._conn._getSessionId()
     data = get_t_z_stack(image, c=c_index)
     # use current rendering settings from OMERO
@@ -153,8 +139,41 @@ def load_omero_channel(viewer, image, channel, c_index):
                         name=name)
 
 
-def set_dims_labels(viewer, image):
+def get_t_z_stack(img, c=0):
+    """
+    Entry point - can be called to initially load an image
+    from OMERO into the napari viewer
 
+    :param  img:        omero.gateway.ImageWrapper
+    :c      int:        Channel index
+    """
+    sz = img.getSizeZ()
+    st = img.getSizeT()
+    # get all planes we need
+    zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
+    pixels = img.getPrimaryPixels()
+    planes = []
+    for p in pixels.getPlanes(zct_list):
+        # self.ctx.out(".", newline=False)
+        planes.append(p)
+    # self.ctx.out("")
+    if sz == 1 or st == 1:
+        return numpy.array(planes)
+    # arrange plane list into 2D numpy array of planes
+    z_stacks = []
+    for t in range(st):
+        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
+    return numpy.array(z_stacks)
+
+
+def set_dims_labels(viewer, image):
+    """
+    Set labels on napari viewer dims, based on
+    dimensions of OMERO image
+
+    :param  viewer:     napari viewer instance
+    :param  image:      omero.gateway.ImageWrapper
+    """
     # dims (t, z, y, x) for 5D image
     dims = []
     if image.getSizeT() > 1:
@@ -167,7 +186,13 @@ def set_dims_labels(viewer, image):
 
 
 def set_dims_defaults(viewer, image):
+    """
+    Set Z/T slider index on napari viewer, according
+    to default Z/T indecies of the OMERO image
 
+    :param  viewer:     napari viewer instance
+    :param  image:      omero.gateway.ImageWrapper
+    """
     # dims (t, z, y, x) for 5D image
     dims = []
     if image.getSizeT() > 1:
