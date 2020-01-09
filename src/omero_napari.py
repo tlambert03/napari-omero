@@ -1,7 +1,7 @@
 
 from functools import wraps
 
-import omero.clients
+import omero.clients        # noqa
 from omero.rtypes import rdouble, rint
 from omero.model import PointI, ImageI, RoiI
 from omero.gateway import BlitzGateway
@@ -62,7 +62,6 @@ class NapariControl(BaseControl):
             help=("Use eager loading to load all planes immediately instead"
                   "of lazy-loading each plane when needed"))
 
-
     @gateway_required
     def view(self, args):
 
@@ -73,7 +72,6 @@ class NapariControl(BaseControl):
             with napari.gui_qt():
                 viewer = napari.Viewer()
                 load_omero_image(viewer, img, eager=args.eager)
-
 
     def _lookup(self, gateway, type, oid):
         """Find object of type by ID."""
@@ -131,7 +129,7 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
     #     size_z = image.getPixelSizeZ()
     #     if size_x is not None and size_z is not None:
     #         z_scale = [1, size_z / size_x, 1, 1]
-    name=channel.getLabel()
+    name = channel.getLabel()
     layer = viewer.add_image(data,
                              blending='additive',
                              colormap=('from_omero', cmap),
@@ -173,6 +171,7 @@ def get_data(img, c=0):
 
 plane_cache = {}
 
+
 def get_data_lazy(img, c=0):
     """
     Get n-dimensional dask array, with delayed reading from OMERO image.
@@ -182,7 +181,8 @@ def get_data_lazy(img, c=0):
     """
     sz = img.getSizeZ()
     st = img.getSizeT()
-    plane_names = ["%s,%s,%s" % (z, c, t) for t in range(st) for z in range(sz)]
+    plane_names = ["%s,%s,%s" % (z, c, t)
+                   for t in range(st) for z in range(sz)]
 
     def get_plane(plane_name):
         if plane_name in plane_cache:
@@ -306,10 +306,8 @@ def create_roi(conn, img_id, shapes):
     return updateService.saveAndReturnObject(roi)
 
 
-try:
-    register("napari", NapariControl, HELP)
-except:
-    if __name__ == "__main__":
-        cli = CLI()
-        cli.register("napari", NapariControl, HELP)
-        cli.invoke(sys.argv[1:])
+# Register omero_napari as an OMERO CLI plugin
+if __name__ == "__main__":
+    cli = CLI()
+    cli.register("napari", NapariControl, HELP)
+    cli.invoke(sys.argv[1:])
