@@ -98,12 +98,10 @@ def load_omero_image(viewer, image):
     layers = []
     for c, channel in enumerate(image.getChannels()):
         # self.ctx.out('loading channel %s:' % c, newline=False)
-        l = load_omero_channel(viewer, image, channel, c)
-        layers.append(l)
+        load_omero_channel(viewer, image, channel, c)
 
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
-    return l
 
 
 def load_omero_channel(viewer, image, channel, c_index):
@@ -119,6 +117,10 @@ def load_omero_channel(viewer, image, channel, c_index):
     color = channel.getColor().getRGB()
     color = [r/256 for r in color]
     cmap = Colormap([[0, 0, 0], color])
+    win_start = channel.getWindowStart()
+    win_end = channel.getWindowEnd()
+    win_min = channel.getWindowMin()
+    win_max = channel.getWindowMax()
     z_scale = None
     # Z-scale for 3D viewing
     #  NB: This can cause unexpected behaviour
@@ -130,13 +132,17 @@ def load_omero_channel(viewer, image, channel, c_index):
     #     if size_x is not None and size_z is not None:
     #         z_scale = [1, size_z / size_x, 1, 1]
     name=channel.getLabel()
-    return viewer.add_image(data, blending='additive',
-                        colormap=('from_omero', cmap),
-                        scale=z_scale,
-                        # for saving data/ROIs back to OMERO
-                        metadata={'image_id': image.id,
-                                    'session_id': session_id},
-                        name=name)
+    layer = viewer.add_image(data,
+                             blending='additive',
+                             colormap=('from_omero', cmap),
+                             scale=z_scale,
+                             # for saving data/ROIs back to OMERO
+                             metadata={'image_id': image.id,
+                                       'session_id': session_id},
+                             name=name)
+    layer._contrast_limits_range = [win_min, win_max]
+    layer.contrast_limits = [win_start, win_end]
+    return layer
 
 
 def get_t_z_stack(img, c=0):
