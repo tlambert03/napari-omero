@@ -6,15 +6,10 @@ from omero.rtypes import rdouble, rint
 from omero.model import PointI, ImageI, RoiI
 from omero.gateway import BlitzGateway
 
-try:
-    from vispy.color import Colormap
-except ImportError:
-    pass
-
-try:
-    import napari
-except ImportError:
-    pass
+from vispy.color import Colormap
+import napari
+from dask import delayed
+import dask.array as da
 
 import numpy
 
@@ -59,11 +54,13 @@ class NapariControl(BaseControl):
         sub = parser.sub()
         view = parser.add(sub, self.view, VIEW_HELP)
 
-        napari_type = ProxyStringType("Image")
+        obj_type = ProxyStringType("Image")
 
-        for x in (view,):
-            x.add_argument("object", type=napari_type,
-                           help="Object to view")
+        view.add_argument("object", type=obj_type, help="Object to view")
+        view.add_argument(
+            "--eager", action="store_true",
+            help=("Use eager loading to load all planes immediately instead"
+                  "of lazy-loading each plane when needed"))
 
 
     @gateway_required
@@ -75,7 +72,7 @@ class NapariControl(BaseControl):
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
-                load_omero_image(viewer, img)
+                load_omero_image(viewer, img, eager=args.eager)
 
 
     def _lookup(self, gateway, type, oid):
@@ -87,24 +84,24 @@ class NapariControl(BaseControl):
         return obj
 
 
-def load_omero_image(viewer, image):
+def load_omero_image(viewer, image, eager=False):
     """
     Entry point - can be called to initially load an image
     from OMERO into the napari viewer
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
+    :param  eager:      If true, load all planes immediately
     """
-    layers = []
     for c, channel in enumerate(image.getChannels()):
-        # self.ctx.out('loading channel %s:' % c, newline=False)
-        load_omero_channel(viewer, image, channel, c)
+        print('loading channel %s:' % c)
+        load_omero_channel(viewer, image, channel, c, eager)
 
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
 
 
-def load_omero_channel(viewer, image, channel, c_index):
+def load_omero_channel(viewer, image, channel, c_index, eager=False):
     """
     Loads a channel from OMERO image into the napari viewer
 
@@ -112,7 +109,10 @@ def load_omero_channel(viewer, image, channel, c_index):
     :param  image:      omero.gateway.ImageWrapper
     """
     session_id = image._conn._getSessionId()
-    data = get_t_z_stack(image, c=c_index)
+    if eager:
+        data = get_data(image, c=c_index)
+    else:
+        data = get_data_lazy(image, c=c_index)
     # use current rendering settings from OMERO
     color = channel.getColor().getRGB()
     color = [r/256 for r in color]
@@ -145,10 +145,9 @@ def load_omero_channel(viewer, image, channel, c_index):
     return layer
 
 
-def get_t_z_stack(img, c=0):
+def get_data(img, c=0):
     """
-    Entry point - can be called to initially load an image
-    from OMERO into the napari viewer
+    Get n-dimensional numpy array of pixel data for the OMERO image.
 
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
@@ -170,6 +169,50 @@ def get_t_z_stack(img, c=0):
     for t in range(st):
         z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
     return numpy.array(z_stacks)
+
+
+plane_cache = {}
+
+def get_data_lazy(img, c=0):
+    """
+    Get n-dimensional dask array, with delayed reading from OMERO image.
+
+    :param  img:        omero.gateway.ImageWrapper
+    :c      int:        Channel index
+    """
+    sz = img.getSizeZ()
+    st = img.getSizeT()
+    plane_names = ["%s,%s,%s" % (z, c, t) for t in range(st) for z in range(sz)]
+
+    def get_plane(plane_name):
+        if plane_name in plane_cache:
+            return plane_cache[plane_name]
+        z, c, t = [int(n) for n in plane_name.split(",")]
+        print('get_plane', z, c, t)
+        pixels = img.getPrimaryPixels()
+        p = pixels.getPlane(z, c, t)
+        plane_cache[plane_name] = p
+        return p
+
+    # read the first file to get the shape and dtype
+    # ASSUMES THAT ALL FILES SHARE THE SAME SHAPE/TYPE
+    sample = get_plane(plane_names[0])
+
+    lazy_imread = delayed(get_plane)  # lazy reader
+    lazy_arrays = [lazy_imread(pn) for pn in plane_names]
+    dask_arrays = [
+        da.from_delayed(delayed_reader, shape=sample.shape, dtype=sample.dtype)
+        for delayed_reader in lazy_arrays
+    ]
+    # Stack into one large dask.array
+    if sz == 1 or st == 1:
+        return da.stack(dask_arrays, axis=0)
+
+    z_stacks = []
+    for t in range(st):
+        z_stacks.append(da.stack(dask_arrays[t * sz: (t + 1) * sz], axis=0))
+    stack = da.stack(z_stacks, axis=0)
+    return stack
 
 
 def set_dims_labels(viewer, image):
