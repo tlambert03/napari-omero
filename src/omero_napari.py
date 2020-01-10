@@ -124,6 +124,7 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
     win_end = channel.getWindowEnd()
     win_min = channel.getWindowMin()
     win_max = channel.getWindowMax()
+    active = channel.isActive()
     z_scale = None
     # Z-scale for 3D viewing
     #  NB: This can cause unexpected behaviour
@@ -143,6 +144,7 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
         # for saving data/ROIs back to OMERO
         metadata={"image_id": image.id, "session_id": session_id},
         name=name,
+        visible=active,
     )
     layer._contrast_limits_range = [win_min, win_max]
     layer.contrast_limits = [win_start, win_end]
