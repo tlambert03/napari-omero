@@ -78,8 +78,8 @@ class NapariControl(BaseControl):
             with napari.gui_qt():
                 viewer = napari.Viewer()
                 load_omero_image(viewer, img, eager=args.eager)
-                # add 'conn' and 'image_id' to the viewer console
-                viewer.update_console({"conn": self.gateway, "image_id": image_id})
+                # add 'conn' and 'omero_image' to the viewer console
+                viewer.update_console({"conn": self.gateway, "omero_image": img})
 
     def _lookup(self, gateway, type, oid):
         """Find object of type by ID."""
@@ -144,8 +144,6 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
         blending="additive",
         colormap=("from_omero", cmap),
         scale=z_scale,
-        # for saving data/ROIs back to OMERO
-        metadata={"image_id": image.id, "session_id": session_id},
         name=name,
         visible=active,
     )
@@ -263,17 +261,13 @@ def set_dims_defaults(viewer, image):
         viewer.dims.set_point(idx, position)
 
 
-def save_rois(viewer):
-    # Usage: In napari, open console and
-    # >>> from omero_napari import *
-    # >>> save_rois(viewer)
-
-    session_id = get_session_id(viewer)
-    conn = BlitzGateway(port=4064, host="localhost")
-    print("session_id: %s" % session_id)
-    conn.connect(sUuid=session_id)
-
-    image_id = get_image_id(viewer)
+def save_rois(viewer, image):
+    """
+    Usage: In napari, open console...
+    >>> from omero_napari import *
+    >>> save_rois(viewer, omero_image)
+    """
+    conn = image._conn
 
     for layer in viewer.layers:
         if layer.name.startswith("Points"):
@@ -287,24 +281,10 @@ def save_rois(viewer):
                 point.y = rdouble(y)
                 point.theZ = rint(z)
                 point.theT = rint(0)
-                roi = create_roi(conn, image_id, [point])
+                roi = create_roi(conn, image.id, [point])
                 print("Created ROI: %s" % roi.id.val)
 
     conn.close()
-
-
-def get_layers_metadata(viewer, key):
-    for layer in viewer.layers:
-        if key in layer.metadata:
-            return layer.metadata[key]
-
-
-def get_image_id(viewer):
-    return get_layers_metadata(viewer, "image_id")
-
-
-def get_session_id(viewer):
-    return get_layers_metadata(viewer, "session_id")
 
 
 def create_roi(conn, img_id, shapes):
