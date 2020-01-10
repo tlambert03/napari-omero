@@ -71,12 +71,15 @@ class NapariControl(BaseControl):
     def view(self, args):
 
         if isinstance(args.object, ImageI):
-            img = self._lookup(self.gateway, "Image", args.object.id)
+            image_id = args.object.id
+            img = self._lookup(self.gateway, "Image", image_id)
             self.ctx.out("View image: %s" % img.name)
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
                 load_omero_image(viewer, img, eager=args.eager)
+                # add 'conn' and 'image_id' to the viewer console
+                viewer.update_console({"conn": self.gateway, "image_id": image_id})
 
     def _lookup(self, gateway, type, oid):
         """Find object of type by ID."""
