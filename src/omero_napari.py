@@ -1,7 +1,6 @@
-
 from functools import wraps
 
-import omero.clients        # noqa
+import omero.clients  # noqa
 from omero.rtypes import rdouble, rint
 from omero.model import PointI, ImageI, RoiI
 from omero.gateway import BlitzGateway
@@ -29,6 +28,7 @@ def gateway_required(func):
     a BlitzGateway (self.gateway), and makes sure that
     all services of the Blitzgateway are closed again.
     """
+
     @wraps(func)
     def _wrapper(self, *args, **kwargs):
         self.client = self.ctx.conn(*args)
@@ -41,6 +41,7 @@ def gateway_required(func):
                 self.gateway.close(hard=False)
                 self.gateway = None
                 self.client = None
+
     return _wrapper
 
 
@@ -58,9 +59,13 @@ class NapariControl(BaseControl):
 
         view.add_argument("object", type=obj_type, help="Object to view")
         view.add_argument(
-            "--eager", action="store_true",
-            help=("Use eager loading to load all planes immediately instead"
-                  "of lazy-loading each plane when needed"))
+            "--eager",
+            action="store_true",
+            help=(
+                "Use eager loading to load all planes immediately instead"
+                "of lazy-loading each plane when needed"
+            ),
+        )
 
     @gateway_required
     def view(self, args):
@@ -75,7 +80,7 @@ class NapariControl(BaseControl):
 
     def _lookup(self, gateway, type, oid):
         """Find object of type by ID."""
-        gateway.SERVICE_OPTS.setOmeroGroup('-1')
+        gateway.SERVICE_OPTS.setOmeroGroup("-1")
         obj = gateway.getObject(type, oid)
         if not obj:
             self.ctx.die(110, "No such %s: %s" % (type, oid))
@@ -92,7 +97,7 @@ def load_omero_image(viewer, image, eager=False):
     :param  eager:      If true, load all planes immediately
     """
     for c, channel in enumerate(image.getChannels()):
-        print('loading channel %s:' % c)
+        print("loading channel %s:" % c)
         load_omero_channel(viewer, image, channel, c, eager)
 
     set_dims_defaults(viewer, image)
@@ -113,7 +118,7 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
         data = get_data_lazy(image, c=c_index)
     # use current rendering settings from OMERO
     color = channel.getColor().getRGB()
-    color = [r/256 for r in color]
+    color = [r / 256 for r in color]
     cmap = Colormap([[0, 0, 0], color])
     win_start = channel.getWindowStart()
     win_end = channel.getWindowEnd()
@@ -130,14 +135,15 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
     #     if size_x is not None and size_z is not None:
     #         z_scale = [1, size_z / size_x, 1, 1]
     name = channel.getLabel()
-    layer = viewer.add_image(data,
-                             blending='additive',
-                             colormap=('from_omero', cmap),
-                             scale=z_scale,
-                             # for saving data/ROIs back to OMERO
-                             metadata={'image_id': image.id,
-                                       'session_id': session_id},
-                             name=name)
+    layer = viewer.add_image(
+        data,
+        blending="additive",
+        colormap=("from_omero", cmap),
+        scale=z_scale,
+        # for saving data/ROIs back to OMERO
+        metadata={"image_id": image.id, "session_id": session_id},
+        name=name,
+    )
     layer._contrast_limits_range = [win_min, win_max]
     layer.contrast_limits = [win_start, win_end]
     return layer
@@ -165,7 +171,7 @@ def get_data(img, c=0):
     # arrange plane list into 2D numpy array of planes
     z_stacks = []
     for t in range(st):
-        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
+        z_stacks.append(numpy.array(planes[t * sz : (t + 1) * sz]))
     return numpy.array(z_stacks)
 
 
@@ -181,14 +187,13 @@ def get_data_lazy(img, c=0):
     """
     sz = img.getSizeZ()
     st = img.getSizeT()
-    plane_names = ["%s,%s,%s" % (z, c, t)
-                   for t in range(st) for z in range(sz)]
+    plane_names = ["%s,%s,%s" % (z, c, t) for t in range(st) for z in range(sz)]
 
     def get_plane(plane_name):
         if plane_name in plane_cache:
             return plane_cache[plane_name]
         z, c, t = [int(n) for n in plane_name.split(",")]
-        print('get_plane', z, c, t)
+        print("get_plane", z, c, t)
         pixels = img.getPrimaryPixels()
         p = pixels.getPlane(z, c, t)
         plane_cache[plane_name] = p
@@ -210,7 +215,7 @@ def get_data_lazy(img, c=0):
 
     z_stacks = []
     for t in range(st):
-        z_stacks.append(da.stack(dask_arrays[t * sz: (t + 1) * sz], axis=0))
+        z_stacks.append(da.stack(dask_arrays[t * sz : (t + 1) * sz], axis=0))
     stack = da.stack(z_stacks, axis=0)
     return stack
 
@@ -260,7 +265,7 @@ def save_rois(viewer):
 
     session_id = get_session_id(viewer)
     conn = BlitzGateway(port=4064, host="localhost")
-    print('session_id: %s' % session_id)
+    print("session_id: %s" % session_id)
     conn.connect(sUuid=session_id)
 
     image_id = get_image_id(viewer)
@@ -290,11 +295,11 @@ def get_layers_metadata(viewer, key):
 
 
 def get_image_id(viewer):
-    return get_layers_metadata(viewer, 'image_id')
+    return get_layers_metadata(viewer, "image_id")
 
 
 def get_session_id(viewer):
-    return get_layers_metadata(viewer, 'session_id')
+    return get_layers_metadata(viewer, "session_id")
 
 
 def create_roi(conn, img_id, shapes):
