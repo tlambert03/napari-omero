@@ -13,6 +13,7 @@ from vispy.color import Colormap
 import napari
 from dask import delayed
 import dask.array as da
+from qtpy.QtWidgets import QPushButton
 
 import numpy
 
@@ -81,6 +82,15 @@ class NapariControl(BaseControl):
 
             with napari.gui_qt():
                 viewer = napari.Viewer()
+
+                def handle_save_rois():
+                    print("handle_save_rois")
+                    save_rois(viewer, img)
+
+                button = QPushButton("Save ROIs to OMERO")
+                button.clicked.connect(handle_save_rois)
+
+                viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
                 load_omero_image(viewer, img, eager=args.eager)
                 # add 'conn' and 'omero_image' to the viewer console
                 viewer.update_console({"conn": self.gateway, "omero_image": img})
@@ -118,7 +128,6 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     """
-    session_id = image._conn._getSessionId()
     if eager:
         data = get_data(image, c=c_index)
     else:
