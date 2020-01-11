@@ -83,14 +83,8 @@ class NapariControl(BaseControl):
             with napari.gui_qt():
                 viewer = napari.Viewer()
 
-                def handle_save_rois():
-                    print("handle_save_rois")
-                    save_rois(viewer, img)
+                add_buttons(viewer, img)
 
-                button = QPushButton("Save ROIs to OMERO")
-                button.clicked.connect(handle_save_rois)
-
-                viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
                 load_omero_image(viewer, img, eager=args.eager)
                 # add 'conn' and 'omero_image' to the viewer console
                 viewer.update_console({"conn": self.gateway, "omero_image": img})
@@ -102,6 +96,17 @@ class NapariControl(BaseControl):
         if not obj:
             self.ctx.die(110, "No such %s: %s" % (type, oid))
         return obj
+
+def add_buttons(viewer, img):
+    """
+    Add custom buttons to the viewer UI
+    """
+    def handle_save_rois():
+        save_rois(viewer, img)
+
+    button = QPushButton("Save ROIs to OMERO")
+    button.clicked.connect(handle_save_rois)
+    viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
 
 
 def load_omero_image(viewer, image, eager=False):
