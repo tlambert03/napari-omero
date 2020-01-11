@@ -4,6 +4,10 @@ import omero.clients  # noqa
 from omero.rtypes import rdouble, rint
 from omero.model import PointI, ImageI, RoiI
 from omero.gateway import BlitzGateway
+from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
+from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
+from omero.model.enums import PixelsTypeuint32, PixelsTypefloat
+from omero.model.enums import PixelsTypecomplex, PixelsTypedouble
 
 from vispy.color import Colormap
 import napari
@@ -202,14 +206,27 @@ def get_data_lazy(img, c=0):
         plane_cache[plane_name] = p
         return p
 
-    # read the first file to get the shape and dtype
-    # ASSUMES THAT ALL FILES SHARE THE SAME SHAPE/TYPE
-    sample = get_plane(plane_names[0])
+    pixels = img.getPrimaryPixels()
+    pixelTypes = {
+        PixelsTypeint8: numpy.int8,
+        PixelsTypeuint8: numpy.uint8,
+        PixelsTypeint16: numpy.int16,
+        PixelsTypeuint16: numpy.uint16,
+        PixelsTypeint32: numpy.int32,
+        PixelsTypeuint32: numpy.uint32,
+        PixelsTypefloat: numpy.float32,
+        PixelsTypedouble: numpy.float64,
+    }
+    size_x = img.getSizeX()
+    size_y = img.getSizeY()
+    plane_shape = (size_y, size_x)
+    pixelType = pixels.getPixelsType().value
+    numpy_type = pixelTypes[pixelType]
 
     lazy_imread = delayed(get_plane)  # lazy reader
     lazy_arrays = [lazy_imread(pn) for pn in plane_names]
     dask_arrays = [
-        da.from_delayed(delayed_reader, shape=sample.shape, dtype=sample.dtype)
+        da.from_delayed(delayed_reader, shape=plane_shape, dtype=numpy_type)
         for delayed_reader in lazy_arrays
     ]
     # Stack into one large dask.array
