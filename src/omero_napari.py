@@ -1,8 +1,8 @@
 from functools import wraps
 
 import omero.clients  # noqa
-from omero.rtypes import rdouble, rint
-from omero.model import PointI, ImageI, RoiI, LineI
+from omero.rtypes import rdouble, rint, rstring
+from omero.model import PointI, ImageI, RoiI, LineI, PolylineI, PolygonI, RectangleI
 from omero.gateway import BlitzGateway
 from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
 from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
@@ -318,12 +318,13 @@ def save_rois(viewer, image):
             if len(layer.data) == 0 or len(layer.shape_type) == 0:
                 continue
             shape_types = layer.shape_type
-            if len(shape_types) < len(layer.data):
-                shape_types = [layer.shape_type[0] for t in range(len(layer.data))]
+            if isinstance(shape_types, str):
+                shape_types = [layer.shape_type for t in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
                 print(shape_type, data)
                 shape = create_omero_shape(shape_type, data, image)
-                roi = create_roi(conn, image.id, [shape])
+                if shape is not None:
+                    roi = create_roi(conn, image.id, [shape])
         elif type(layer) == labels_layer:
             print('Saving Labels not supported')
 
@@ -369,6 +370,38 @@ def create_omero_shape(shape_type, data, image):
         shape.y1 = rdouble(get_y(data[0]))
         shape.x2 = rdouble(get_x(data[1]))
         shape.y2 = rdouble(get_y(data[1]))
+    elif shape_type == "path" or shape_type == "polygon":
+        shape = PolylineI() if shape_type == "path" else PolygonI()
+        # points = "10,20, 50,150, 200,200, 250,75"
+        points = ["%s,%s" % (get_x(d), get_y(d)) for d in data]
+        shape.points = rstring(", ".join(points))
+    elif shape_type == "rectangle":
+        # corners go anti-clockwise starting top-left
+        x1 = get_x(data[0])
+        x2 = get_x(data[1])
+        x3 = get_x(data[2])
+        x4 = get_x(data[3])
+        y1 = get_y(data[0])
+        y2 = get_y(data[1])
+        y3 = get_y(data[2])
+        y4 = get_y(data[3])
+        print(y1, y2)
+        if x1 == x2:
+            # Rectangle
+            shape = RectangleI()
+            shape.x = rdouble(x1)
+            shape.y = rdouble(y1)
+            shape.width = rdouble(x3 - x1)
+            shape.height = rdouble(y2 - y1)
+        else:
+            # Rotated Rectangle - save as Polygon
+            shape = PolygonI()
+            points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
+                x1, y1, x2, y2, x3, y3, x4, y4
+            )
+            shape.points = rstring(points)
+    elif shape_type == "ellipse":
+        pass
 
     if shape is not None:
         shape.theZ = rint(z_index)
