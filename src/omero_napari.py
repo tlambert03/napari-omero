@@ -220,22 +220,10 @@ def get_data_lazy(img, c=0):
         plane_cache[plane_name] = p
         return p
 
-    pixels = img.getPrimaryPixels()
-    pixelTypes = {
-        PixelsTypeint8: numpy.int8,
-        PixelsTypeuint8: numpy.uint8,
-        PixelsTypeint16: numpy.int16,
-        PixelsTypeuint16: numpy.uint16,
-        PixelsTypeint32: numpy.int32,
-        PixelsTypeuint32: numpy.uint32,
-        PixelsTypefloat: numpy.float32,
-        PixelsTypedouble: numpy.float64,
-    }
     size_x = img.getSizeX()
     size_y = img.getSizeY()
     plane_shape = (size_y, size_x)
-    pixelType = pixels.getPixelsType().value
-    numpy_type = pixelTypes[pixelType]
+    numpy_type = get_numpy_pixel_type(img)
 
     lazy_imread = delayed(get_plane)  # lazy reader
     lazy_arrays = [lazy_imread(pn) for pn in plane_names]
@@ -252,6 +240,22 @@ def get_data_lazy(img, c=0):
         z_stacks.append(da.stack(dask_arrays[t * sz : (t + 1) * sz], axis=0))
     stack = da.stack(z_stacks, axis=0)
     return stack
+
+
+def get_numpy_pixel_type(image):
+    pixels = image.getPrimaryPixels()
+    pixelTypes = {
+        PixelsTypeint8: numpy.int8,
+        PixelsTypeuint8: numpy.uint8,
+        PixelsTypeint16: numpy.int16,
+        PixelsTypeuint16: numpy.uint16,
+        PixelsTypeint32: numpy.int32,
+        PixelsTypeuint32: numpy.uint32,
+        PixelsTypefloat: numpy.float32,
+        PixelsTypedouble: numpy.float64,
+    }
+    pixelType = pixels.getPixelsType().value
+    return pixelTypes.get(pixelType, None)
 
 
 def set_dims_labels(viewer, image):
