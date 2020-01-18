@@ -2,7 +2,7 @@ from functools import wraps
 
 import omero.clients  # noqa
 from omero.rtypes import rdouble, rint
-from omero.model import PointI, ImageI, RoiI
+from omero.model import PointI, ImageI, RoiI, LineI
 from omero.gateway import BlitzGateway
 from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
 from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
@@ -11,6 +11,9 @@ from omero.model.enums import PixelsTypecomplex, PixelsTypedouble
 
 from vispy.color import Colormap
 import napari
+from napari.layers.points.points import Points as points_layer
+from napari.layers.shapes.shapes import Shapes as shapes_layer
+from napari.layers.labels.labels import Labels as labels_layer
 from dask import delayed
 import dask.array as da
 from qtpy.QtWidgets import QPushButton
@@ -305,22 +308,72 @@ def save_rois(viewer, image):
     conn = image._conn
 
     for layer in viewer.layers:
-        if layer.name.startswith("Points"):
+        print(type(layer))
+        if type(layer) == points_layer:
             for p in layer.data:
-                z = p[0]
-                y = p[1]
-                x = p[2]
-
-                point = PointI()
-                point.x = rdouble(x)
-                point.y = rdouble(y)
-                point.theZ = rint(z)
-                point.theT = rint(0)
+                point = create_omero_point(p, image)
                 roi = create_roi(conn, image.id, [point])
                 print("Created ROI: %s" % roi.id.val)
+        elif type(layer) == shapes_layer:
+            if len(layer.data) == 0 or len(layer.shape_type) == 0:
+                continue
+            shape_types = layer.shape_type
+            if len(shape_types) < len(layer.data):
+                shape_types = [layer.shape_type[0] for t in range(len(layer.data))]
+            for shape_type, data in zip(shape_types, layer.data):
+                print(shape_type, data)
+                shape = create_omero_shape(shape_type, data, image)
+                roi = create_roi(conn, image.id, [shape])
+        elif type(layer) == labels_layer:
+            print('Saving Labels not supported')
 
     conn.close()
 
+def get_x(coordinate):
+    return coordinate[-1]
+
+def get_y(coordinate):
+    return coordinate[-2]
+
+def get_t(coordinate, image):
+    if image.getSizeT() > 1:
+        return coordinate[0]
+    return 0
+
+def get_z(coordinate, image):
+    if image.getSizeZ() == 1:
+        return 0
+    if image.getSizeT() == 1:
+        return coordinate[0]
+    #if coordinate includes T and Z... [t, z, x, y]
+    return coordinate[1]
+
+def create_omero_point(data, image):
+    point = PointI()
+    point.x = rdouble(get_x(data))
+    point.y = rdouble(get_y(data))
+    point.theZ = rint(get_z(data, image))
+    point.theT = rint(get_t(data, image))
+    return point
+
+def create_omero_shape(shape_type, data, image):
+    # "line", "path", "polygon", "rectangle", "ellipse"
+    # NB: assume all points on same plane.
+    # Use first point to get Z and T index
+    z_index = get_z(data[0], image)
+    t_index = get_t(data[0], image)
+    shape = None
+    if shape_type == "line":
+        shape = LineI()
+        shape.x1 = rdouble(get_x(data[0]))
+        shape.y1 = rdouble(get_y(data[0]))
+        shape.x2 = rdouble(get_x(data[1]))
+        shape.y2 = rdouble(get_y(data[1]))
+
+    if shape is not None:
+        shape.theZ = rint(z_index)
+        shape.theT = rint(t_index)
+    return shape
 
 def create_roi(conn, img_id, shapes):
     updateService = conn.getUpdateService()
