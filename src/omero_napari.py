@@ -2,7 +2,8 @@ from functools import wraps
 
 import omero.clients  # noqa
 from omero.rtypes import rdouble, rint, rstring
-from omero.model import PointI, ImageI, RoiI, LineI, PolylineI, PolygonI, RectangleI
+from omero.model import PointI, ImageI, RoiI, LineI, \
+    PolylineI, PolygonI, RectangleI, EllipseI
 from omero.gateway import BlitzGateway
 from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
 from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
@@ -375,7 +376,7 @@ def create_omero_shape(shape_type, data, image):
         # points = "10,20, 50,150, 200,200, 250,75"
         points = ["%s,%s" % (get_x(d), get_y(d)) for d in data]
         shape.points = rstring(", ".join(points))
-    elif shape_type == "rectangle":
+    elif shape_type == "rectangle" or shape_type == "ellipse":
         # corners go anti-clockwise starting top-left
         x1 = get_x(data[0])
         x2 = get_x(data[1])
@@ -385,23 +386,34 @@ def create_omero_shape(shape_type, data, image):
         y2 = get_y(data[1])
         y3 = get_y(data[2])
         y4 = get_y(data[3])
-        print(y1, y2)
-        if x1 == x2:
-            # Rectangle
-            shape = RectangleI()
-            shape.x = rdouble(x1)
-            shape.y = rdouble(y1)
-            shape.width = rdouble(x3 - x1)
-            shape.height = rdouble(y2 - y1)
-        else:
-            # Rotated Rectangle - save as Polygon
-            shape = PolygonI()
-            points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
-                x1, y1, x2, y2, x3, y3, x4, y4
-            )
-            shape.points = rstring(points)
-    elif shape_type == "ellipse":
-        pass
+        print(x1,x2)
+        if shape_type == "rectangle":
+            # Rectangle not rotated
+            if x1 == x2:
+                shape = RectangleI()
+                # TODO: handle 'updside down' rectangle x3 < x1
+                shape.x = rdouble(x1)
+                shape.y = rdouble(y1)
+                shape.width = rdouble(x3 - x1)
+                shape.height = rdouble(y2 - y1)
+            else:
+                # Rotated Rectangle - save as Polygon
+                shape = PolygonI()
+                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
+                    x1, y1, x2, y2, x3, y3, x4, y4
+                )
+                shape.points = rstring(points)
+        elif shape_type == "ellipse":
+            # Ellipse not rotated (ignore floating point rouding)
+            if int(x1) == int(x2):
+                shape = EllipseI()
+                shape.x = rdouble((x1 + x3) / 2)
+                shape.y = rdouble((y1 + y2) / 2)
+                shape.radiusX = rdouble(abs(x3 - x1) / 2)
+                shape.radiusY = rdouble(abs(y2 - y1) / 2)
+            else:
+                # TODO: Need to calculate transformation matrix
+                print("Rotated Ellipse not yet supported!")
 
     if shape is not None:
         shape.theZ = rint(z_index)
