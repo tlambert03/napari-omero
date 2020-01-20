@@ -6,14 +6,16 @@ OMERO CLI client to open images in the napari viewer
 Requires Python 3.6 or higher and install https://github.com/ome/omero-py to
 connect to OMERO.
 
-Install conda from https://docs.conda.io/en/latest/miniconda.html, then:
+Install conda from https://docs.conda.io/en/latest/miniconda.html, then::
 
     # Create a conda environment named 'napari' and install omero-py
 
     conda create -n napari -c ome python=3.6 zeroc-ice36-python omero-py
+    conda activate napari
 
-    # Install omero-napari (will also install napari)
+    # Install napari and omero-napari
 
+    pip install "napari>=0.2.10"
     pip install -i https://test.pypi.org/simple/ omero-napari
 
     # View an image in OMERO (will prompt for server and login)
