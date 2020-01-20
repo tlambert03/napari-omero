@@ -6,13 +6,13 @@ with open("README.md", "r") as fh:
 
 setup(
     name='omero-napari',
-    version='0.0.1',
+    version='0.0.2',
     description="OMERO CLI plugin to view images in napari",
     long_description=long_description,
     author="The Open Microscopy Team",
     packages=['', 'omero.plugins'],
     package_dir={"": "src"},
-    install_requires=['napari'],
+    install_requires=['napari>=0.2.10'],
     keywords=['OMERO.CLI', 'plugin', 'napari'],
     classifiers=[
         'Development Status :: 3 - Alpha',
