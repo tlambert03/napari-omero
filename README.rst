@@ -35,8 +35,8 @@ Features
   loaded when the Z/T sliders are changed.
 - All channels from OMERO are shown in napari.
 - Rendering settings from OMERO are applied to napari so it looks the same:
-  - The range and settings of the contrast sliders.
-  - The color of each channel.
-  - Only active layers are loaded and visible in napari.
-  - The Z/T sliders are set to the default Z/T index from OMERO.
+   - The range and settings of the contrast sliders.
+   - The color of each channel.
+   - Only active layers are loaded and visible in napari.
+   - The Z/T sliders are set to the default Z/T index from OMERO.
 - ROIs created in napari can be saved back to OMERO via a "Save ROIs" button.
