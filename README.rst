@@ -40,3 +40,4 @@ Features
    - Only active layers are loaded and visible in napari.
    - The Z/T sliders are set to the default Z/T index from OMERO.
 - ROIs created in napari can be saved back to OMERO via a "Save ROIs" button.
+- napari viewer console has BlitzGateway 'conn' and 'omero_image' in context.

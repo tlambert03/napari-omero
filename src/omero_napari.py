@@ -8,7 +8,7 @@ from omero.gateway import BlitzGateway, PixelsWrapper
 from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
 from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
 from omero.model.enums import PixelsTypeuint32, PixelsTypefloat
-from omero.model.enums import PixelsTypecomplex, PixelsTypedouble
+from omero.model.enums import PixelsTypedouble
 
 from vispy.color import Colormap
 import napari
@@ -91,7 +91,8 @@ class NapariControl(BaseControl):
 
                 load_omero_image(viewer, img, eager=args.eager)
                 # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console({"conn": self.gateway, "omero_image": img})
+                viewer.update_console({"conn": self.gateway,
+                                       "omero_image": img})
 
     def _lookup(self, gateway, type, oid):
         """Find object of type by ID."""
@@ -100,6 +101,14 @@ class NapariControl(BaseControl):
         if not obj:
             self.ctx.die(110, "No such %s: %s" % (type, oid))
         return obj
+
+
+# Register omero_napari as an OMERO CLI plugin
+if __name__ == "__main__":
+    cli = CLI()
+    cli.register("napari", NapariControl, HELP)
+    cli.invoke(sys.argv[1:])
+
 
 def add_buttons(viewer, img):
     """
@@ -196,7 +205,7 @@ def get_data(img, c=0):
     # arrange plane list into 2D numpy array of planes
     z_stacks = []
     for t in range(st):
-        z_stacks.append(numpy.array(planes[t * sz : (t + 1) * sz]))
+        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
     return numpy.array(z_stacks)
 
 
@@ -212,7 +221,8 @@ def get_data_lazy(img, c=0):
     """
     sz = img.getSizeZ()
     st = img.getSizeT()
-    plane_names = ["%s,%s,%s" % (z, c, t) for t in range(st) for z in range(sz)]
+    plane_names = ["%s,%s,%s" % (z, c, t)
+                   for t in range(st) for z in range(sz)]
 
     def get_plane(plane_name):
         if plane_name in plane_cache:
@@ -241,7 +251,7 @@ def get_data_lazy(img, c=0):
 
     z_stacks = []
     for t in range(st):
-        z_stacks.append(da.stack(dask_arrays[t * sz : (t + 1) * sz], axis=0))
+        z_stacks.append(da.stack(dask_arrays[t * sz: (t + 1) * sz], axis=0))
     stack = da.stack(z_stacks, axis=0)
     return stack
 
@@ -309,7 +319,6 @@ def save_rois(viewer, image):
     conn = image._conn
 
     for layer in viewer.layers:
-        print(type(layer))
         if type(layer) == points_layer:
             for p in layer.data:
                 point = create_omero_point(p, image)
@@ -320,12 +329,13 @@ def save_rois(viewer, image):
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [layer.shape_type for t in range(len(layer.data))]
+                shape_types = [layer.shape_type
+                               for t in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
-                print(shape_type, data)
                 shape = create_omero_shape(shape_type, data, image)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
+                    print("Created ROI: %s" % roi.id.val)
         elif type(layer) == labels_layer:
             print('Saving Labels not supported')
 
@@ -333,21 +343,25 @@ def save_rois(viewer, image):
 def get_x(coordinate):
     return coordinate[-1]
 
+
 def get_y(coordinate):
     return coordinate[-2]
+
 
 def get_t(coordinate, image):
     if image.getSizeT() > 1:
         return coordinate[0]
     return 0
 
+
 def get_z(coordinate, image):
     if image.getSizeZ() == 1:
         return 0
     if image.getSizeT() == 1:
         return coordinate[0]
-    #if coordinate includes T and Z... [t, z, x, y]
+    # if coordinate includes T and Z... [t, z, x, y]
     return coordinate[1]
+
 
 def create_omero_point(data, image):
     point = PointI()
@@ -356,6 +370,7 @@ def create_omero_point(data, image):
     point.theZ = rint(get_z(data, image))
     point.theT = rint(get_t(data, image))
     return point
+
 
 def create_omero_shape(shape_type, data, image):
     # "line", "path", "polygon", "rectangle", "ellipse"
@@ -385,7 +400,6 @@ def create_omero_shape(shape_type, data, image):
         y2 = get_y(data[1])
         y3 = get_y(data[2])
         y4 = get_y(data[3])
-        print(x1,x2)
         if shape_type == "rectangle":
             # Rectangle not rotated
             if x1 == x2:
@@ -419,6 +433,7 @@ def create_omero_shape(shape_type, data, image):
         shape.theT = rint(t_index)
     return shape
 
+
 def create_roi(conn, img_id, shapes):
     updateService = conn.getUpdateService()
     roi = RoiI()
@@ -426,13 +441,6 @@ def create_roi(conn, img_id, shapes):
     for shape in shapes:
         roi.addShape(shape)
     return updateService.saveAndReturnObject(roi)
-
-
-# Register omero_napari as an OMERO CLI plugin
-if __name__ == "__main__":
-    cli = CLI()
-    cli.register("napari", NapariControl, HELP)
-    cli.invoke(sys.argv[1:])
 
 
 class NonCachedPixelsWrapper(PixelsWrapper):
@@ -451,6 +459,7 @@ class NonCachedPixelsWrapper(PixelsWrapper):
         ps = self._conn.c.sf.createRawPixelsStore()
         ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
         return ps
+
 
 omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
 # Update the BlitzGateway to use our NonCachedPixelsWrapper
