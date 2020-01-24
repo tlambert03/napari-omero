@@ -329,7 +329,6 @@ def save_rois(viewer, image):
         elif type(layer) == labels_layer:
             print('Saving Labels not supported')
 
-    conn.close()
 
 def get_x(coordinate):
     return coordinate[-1]
