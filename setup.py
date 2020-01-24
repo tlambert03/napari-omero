@@ -6,7 +6,7 @@ with open("README.rst", "r") as fh:
 
 setup(
     name='omero-napari',
-    version='0.0.3dev',
+    version='0.0.3',
     description="OMERO CLI plugin to view images in napari",
     long_description=long_description,
     author="The Open Microscopy Team",
