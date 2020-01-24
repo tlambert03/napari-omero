@@ -4,7 +4,7 @@ import omero.clients  # noqa
 from omero.rtypes import rdouble, rint, rstring
 from omero.model import PointI, ImageI, RoiI, LineI, \
     PolylineI, PolygonI, RectangleI, EllipseI
-from omero.gateway import BlitzGateway
+from omero.gateway import BlitzGateway, PixelsWrapper
 from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
 from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
 from omero.model.enums import PixelsTypeuint32, PixelsTypefloat
@@ -433,3 +433,25 @@ if __name__ == "__main__":
     cli = CLI()
     cli.register("napari", NapariControl, HELP)
     cli.invoke(sys.argv[1:])
+
+
+class NonCachedPixelsWrapper(PixelsWrapper):
+    """Extend gateway.PixelWrapper to override _prepareRawPixelsStore."""
+
+    def _prepareRawPixelsStore(self):
+        """
+        Creates RawPixelsStore and sets the id etc
+
+        This overrides the superclass behaviour to make sure that
+        we don't re-use RawPixelStore in multiple processes since
+        the Store may be closed in 1 process while still needed elsewhere.
+        This is needed when napari requests may planes simultaneously,
+        e.g. when switching to 3D view.
+        """
+        ps = self._conn.c.sf.createRawPixelsStore()
+        ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
+        return ps
+
+omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
+# Update the BlitzGateway to use our NonCachedPixelsWrapper
+omero.gateway.refreshWrappers()
