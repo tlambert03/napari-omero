@@ -12,7 +12,7 @@ setup(
     author="The Open Microscopy Team",
     packages=['', 'omero.plugins'],
     package_dir={"": "src"},
-    install_requires=['napari>=0.2.10'],
+    install_requires=['napari>=0.2.10', 'xarray', 'xpublish'],
     keywords=['OMERO.CLI', 'plugin', 'napari'],
     classifiers=[
         'Development Status :: 3 - Alpha',
