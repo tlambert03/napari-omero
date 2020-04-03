@@ -17,9 +17,12 @@ from napari.layers.shapes.shapes import Shapes as shapes_layer
 from napari.layers.labels.labels import Labels as labels_layer
 from dask import delayed
 import dask.array as da
+from fsspec.implementations.http import HTTPFileSystem
+import zarr
 from qtpy.QtWidgets import QPushButton
 
 import numpy
+import xarray as xr
 
 import sys
 from omero.cli import CLI
@@ -75,6 +78,41 @@ class NapariControl(BaseControl):
                 "of lazy-loading each plane when needed"
             ),
         )
+        view.add_argument(
+            "--zarr",
+            action="store_true",
+            help=("Use xpublish read zarr data")
+        )
+
+        # Command to export numpy data to Zarr file
+        # Saves a file "imageID.zarr"
+        to_zarr = parser.add(sub, self.to_zarr, "Save image as zarr file")
+        to_zarr.add_argument("object", type=obj_type, help="Object to save as zarr")
+
+    @gateway_required
+    def to_zarr(self, args):
+
+        if isinstance(args.object, ImageI):
+            image_id = args.object.id
+            image = self._lookup(self.gateway, "Image", image_id)
+            self.ctx.out("Image to zarr: %s" % image.name)
+
+            name = '%s.zarr' % image.id
+            xr_data = {}
+
+            # we create an xarrary.Dataset: each key is channel index (as string)
+            for idx in range(image.getSizeC()):
+                print(idx)
+                # get e.g. 3D np array for each channel
+                data = get_data(image, c=idx)
+                xr_data[str(idx)] = (('z', 'y', 'x'), data)
+
+            # ds = xr.Dataset({'foo': (('z', 'y', 'x'), viewer.layers[0].data)})
+            #    ....:                 coords={'x': [10, 20, 30, 40],
+            #    ....:                         'y': pd.date_range('2000-01-01', periods=5),
+            #    ....:                         'z': ('x', list('abcd'))})
+            ds = xr.Dataset(xr_data)
+            ds.to_zarr(name)
 
     @gateway_required
     def view(self, args):
@@ -89,7 +127,7 @@ class NapariControl(BaseControl):
 
                 add_buttons(viewer, img)
 
-                load_omero_image(viewer, img, eager=args.eager)
+                load_omero_image(viewer, img, eager=args.eager, use_zarr=args.zarr)
                 # add 'conn' and 'omero_image' to the viewer console
                 viewer.update_console({"conn": self.gateway,
                                        "omero_image": img})
@@ -122,7 +160,7 @@ def add_buttons(viewer, img):
     viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
 
 
-def load_omero_image(viewer, image, eager=False):
+def load_omero_image(viewer, image, eager=False, use_zarr=False):
     """
     Entry point - can be called to initially load an image
     from OMERO into the napari viewer
@@ -130,26 +168,38 @@ def load_omero_image(viewer, image, eager=False):
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     :param  eager:      If true, load all planes immediately
+    :param  use_zarr:   If true, load zarr via xpublish
     """
-    for c, channel in enumerate(image.getChannels()):
-        print("loading channel %s:" % c)
-        load_omero_channel(viewer, image, channel, c, eager)
+
+    if use_zarr:
+        fs = HTTPFileSystem()
+        http_map = fs.get_mapper('http://0.0.0.0:9000')
+        zg = zarr.open_consolidated(http_map, mode='r')
+        zg.tree()
+        for c, channel in enumerate(image.getChannels()):
+            data = zg[str(c)]
+            load_omero_channel(viewer, image, channel, c, data)
+
+    else:
+        for c, channel in enumerate(image.getChannels()):
+            print("loading channel %s:" % c)
+            if eager:
+                data = get_data(image, c=c_index)
+            else:
+                data = get_data_lazy(image, c=c_index)
+            load_omero_channel(viewer, image, channel, c, data)
 
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
 
 
-def load_omero_channel(viewer, image, channel, c_index, eager=False):
+def load_omero_channel(viewer, image, channel, c_index, data):
     """
     Loads a channel from OMERO image into the napari viewer
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     """
-    if eager:
-        data = get_data(image, c=c_index)
-    else:
-        data = get_data_lazy(image, c=c_index)
     # use current rendering settings from OMERO
     color = channel.getColor().getRGB()
     color = [r / 256 for r in color]
