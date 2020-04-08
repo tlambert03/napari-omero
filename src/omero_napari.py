@@ -190,9 +190,11 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
                 data = get_data_lazy(image, c=c)
             load_omero_channel(viewer, image, channel, c, data)
 
-    print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
+    # If lazy-loading data. This will load data for default Z/T positions
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
+
+    print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
 
 
 def load_omero_channel(viewer, image, channel, c_index, data):
