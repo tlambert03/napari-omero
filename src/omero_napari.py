@@ -229,9 +229,9 @@ def load_omero_channel(viewer, image, channel, c_index, data):
         scale=z_scale,
         name=name,
         visible=active,
+        contrast_limits = [win_start, win_end],
     )
     layer._contrast_limits_range = [win_min, win_max]
-    layer.contrast_limits = [win_start, win_end]
     return layer
 
 
