@@ -1,4 +1,5 @@
 from functools import wraps
+from datetime import datetime
 
 import omero.clients  # noqa
 from omero.rtypes import rdouble, rint, rstring
@@ -171,11 +172,11 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
     :param  use_zarr:   If true, load zarr via xpublish
     """
 
+    n = datetime.now()
     if use_zarr:
         fs = HTTPFileSystem()
         http_map = fs.get_mapper('http://0.0.0.0:9000')
         zg = zarr.open_consolidated(http_map, mode='r')
-        zg.tree()
         for c, channel in enumerate(image.getChannels()):
             data = zg[str(c)]
             load_omero_channel(viewer, image, channel, c, data)
@@ -184,11 +185,12 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
         for c, channel in enumerate(image.getChannels()):
             print("loading channel %s:" % c)
             if eager:
-                data = get_data(image, c=c_index)
+                data = get_data(image, c=c)
             else:
-                data = get_data_lazy(image, c=c_index)
+                data = get_data_lazy(image, c=c)
             load_omero_channel(viewer, image, channel, c, data)
 
+    print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
 
