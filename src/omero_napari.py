@@ -85,10 +85,15 @@ class NapariControl(BaseControl):
             help=("Use xpublish read zarr data")
         )
 
-        # Command to export numpy data to Zarr file
+        # Command to export numpy data to simple Zarr file (no groups)
         # Saves a file "imageID.zarr"
-        to_zarr = parser.add(sub, self.to_zarr, "Save image as zarr file")
+        to_zarr = parser.add(sub, self.to_zarr, "Save image as zarr file (no groups)")
         to_zarr.add_argument("object", type=obj_type, help="Object to save as zarr")
+
+        # Export numpy data as xarray.zarr file
+        # Suitable to use with xpublish
+        to_xarray = parser.add(sub, self.to_xarray, "Save image as xarray zarr file, for xpublish")
+        to_xarray.add_argument("object", type=obj_type, help="Object to save as xarray.zarr")
 
     @gateway_required
     def to_zarr(self, args):
@@ -97,8 +102,36 @@ class NapariControl(BaseControl):
             image_id = args.object.id
             image = self._lookup(self.gateway, "Image", image_id)
             self.ctx.out("Image to zarr: %s" % image.name)
+            size_c = image.getSizeC()
+            size_z = image.getSizeZ()
+            size_x = image.getSizeX()
+            size_y = image.getSizeY()
 
             name = '%s.zarr' % image.id
+            z = None
+            for idx in range(image.getSizeC()):
+                data = get_data(image, c=idx)
+                # Use the first plane to init zarr.
+                # TODO: chunk size set manually
+                if z is None:
+                    z = zarr.open(
+                        name,
+                        shape=(size_c, size_z, size_y, size_x),
+                        chunks=(1, 13, 128, 256),
+                        compressor=None,
+                        dtype=data.dtype
+                    )
+                z[idx] = data
+
+    @gateway_required
+    def to_xarray(self, args):
+
+        if isinstance(args.object, ImageI):
+            image_id = args.object.id
+            image = self._lookup(self.gateway, "Image", image_id)
+            self.ctx.out("Image to zarr: %s" % image.name)
+
+            name = '%s_xarray.zarr' % image.id
             xr_data = {}
 
             # we create an xarrary.Dataset: each key is channel index (as string)
