@@ -23,12 +23,18 @@ import zarr
 from qtpy.QtWidgets import QPushButton
 
 import numpy
-import xarray as xr
 
 import sys
+import os
+import s3fs
 from omero.cli import CLI
 from omero.cli import BaseControl
 from omero.cli import ProxyStringType
+
+import logging
+# DEBUG logging for s3fs so we can track remote calls
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('s3fs').setLevel(logging.DEBUG)
 
 HELP = "Connect OMERO to the napari image viewer"
 
@@ -84,69 +90,6 @@ class NapariControl(BaseControl):
             action="store_true",
             help=("Use xpublish read zarr data")
         )
-
-        # Command to export numpy data to simple Zarr file (no groups)
-        # Saves a file "imageID.zarr"
-        to_zarr = parser.add(sub, self.to_zarr, "Save image as zarr file (no groups)")
-        to_zarr.add_argument("object", type=obj_type, help="Object to save as zarr")
-
-        # Export numpy data as xarray.zarr file
-        # Suitable to use with xpublish
-        to_xarray = parser.add(sub, self.to_xarray, "Save image as xarray zarr file, for xpublish")
-        to_xarray.add_argument("object", type=obj_type, help="Object to save as xarray.zarr")
-
-    @gateway_required
-    def to_zarr(self, args):
-
-        if isinstance(args.object, ImageI):
-            image_id = args.object.id
-            image = self._lookup(self.gateway, "Image", image_id)
-            self.ctx.out("Image to zarr: %s" % image.name)
-            size_c = image.getSizeC()
-            size_z = image.getSizeZ()
-            size_x = image.getSizeX()
-            size_y = image.getSizeY()
-
-            name = '%s.zarr' % image.id
-            z = None
-            for idx in range(image.getSizeC()):
-                data = get_data(image, c=idx)
-                # Use the first plane to init zarr.
-                # TODO: chunk size set manually
-                if z is None:
-                    z = zarr.open(
-                        name,
-                        shape=(size_c, size_z, size_y, size_x),
-                        chunks=(1, 13, 128, 256),
-                        compressor=None,
-                        dtype=data.dtype
-                    )
-                z[idx] = data
-
-    @gateway_required
-    def to_xarray(self, args):
-
-        if isinstance(args.object, ImageI):
-            image_id = args.object.id
-            image = self._lookup(self.gateway, "Image", image_id)
-            self.ctx.out("Image to zarr: %s" % image.name)
-
-            name = '%s_xarray.zarr' % image.id
-            xr_data = {}
-
-            # we create an xarrary.Dataset: each key is channel index (as string)
-            for idx in range(image.getSizeC()):
-                print(idx)
-                # get e.g. 3D np array for each channel
-                data = get_data(image, c=idx)
-                xr_data[str(idx)] = (('z', 'y', 'x'), data)
-
-            # ds = xr.Dataset({'foo': (('z', 'y', 'x'), viewer.layers[0].data)})
-            #    ....:                 coords={'x': [10, 20, 30, 40],
-            #    ....:                         'y': pd.date_range('2000-01-01', periods=5),
-            #    ....:                         'z': ('x', list('abcd'))})
-            ds = xr.Dataset(xr_data)
-            ds.to_zarr(name)
 
     @gateway_required
     def view(self, args):
@@ -207,12 +150,31 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
 
     n = datetime.now()
     if use_zarr:
-        fs = HTTPFileSystem()
-        http_map = fs.get_mapper('http://0.0.0.0:9000')
-        zg = zarr.open_consolidated(http_map, mode='r')
+        # fs = HTTPFileSystem()
+        # http_map = fs.get_mapper('http://0.0.0.0:9000')
+        # zg = zarr.open_consolidated(http_map, mode='r')
+
+        cache_size_mb = 2048
+        cfg = {
+            'anon': True,
+            'client_kwargs': {
+                'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+            },
+            'root': 'idr/zarr/%s.zarr' % image.id,
+        }
+        s3 = s3fs.S3FileSystem(
+            anon=cfg['anon'],
+            client_kwargs=cfg['client_kwargs'],
+        )
+        store = s3fs.S3Map(root=cfg['root'], s3=s3, check=False)
+        cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
+        # data.shape is (t, c, z, y, x) by convention
+        data = da.from_zarr(cached_store)
+
         for c, channel in enumerate(image.getChannels()):
-            data = zg[str(c)]
-            load_omero_channel(viewer, image, channel, c, data)
+            # slice to get channel
+            ch_data = data[:, c, :, :, :]
+            load_omero_channel(viewer, image, channel, c, ch_data)
 
     else:
         for c, channel in enumerate(image.getChannels()):
@@ -257,6 +219,7 @@ def load_omero_channel(viewer, image, channel, c_index, data):
     #     if size_x is not None and size_z is not None:
     #         z_scale = [1, size_z / size_x, 1, 1]
     name = channel.getLabel()
+    print('window', c_index, win_start, win_end)
     layer = viewer.add_image(
         data,
         blending="additive",
@@ -266,7 +229,10 @@ def load_omero_channel(viewer, image, channel, c_index, data):
         visible=active,
         contrast_limits = [win_start, win_end],
     )
-    layer._contrast_limits_range = [win_min, win_max]
+    # TODO: we want to set the contrast_limits in add_image() so that
+    # we don't load extra data to calculate this.
+    # BUT, this gets ignored if you include the line below
+    # layer._contrast_limits_range = [win_min, win_max]
     return layer
 
 
