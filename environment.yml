@@ -1,0 +1,10 @@
+name: omero-napari
+channels:
+  - ome
+  - conda-forge
+  - defaults
+dependencies:
+  - napari=0.2.12
+  - omero-py=5.6.2
+  - s3fs=0.4.2
+  - zarr=2.4.0

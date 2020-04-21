@@ -8,12 +8,12 @@ connect to OMERO.
 
 Install conda from https://docs.conda.io/en/latest/miniconda.html, then::
 
-    # Create a conda environment named 'napari' and install omero-py
+    # Create a conda environment named 'omero-napari'
 
-    conda create -n napari -c ome python=3.6 zeroc-ice36-python omero-py
-    conda activate napari
+    conda env create -f environment.yml
+    conda activate omero-napari
 
-    # Install omero-napari (includes napari)
+    # Install omero-napari
 
     pip install omero-napari
 
