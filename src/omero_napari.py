@@ -1,4 +1,5 @@
 from functools import wraps
+from datetime import datetime
 
 import omero.clients  # noqa
 from omero.rtypes import rdouble, rint, rstring
@@ -17,14 +18,23 @@ from napari.layers.shapes.shapes import Shapes as shapes_layer
 from napari.layers.labels.labels import Labels as labels_layer
 from dask import delayed
 import dask.array as da
+from fsspec.implementations.http import HTTPFileSystem
+import zarr
 from qtpy.QtWidgets import QPushButton
 
 import numpy
 
 import sys
+import os
+import s3fs
 from omero.cli import CLI
 from omero.cli import BaseControl
 from omero.cli import ProxyStringType
+
+import logging
+# DEBUG logging for s3fs so we can track remote calls
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('s3fs').setLevel(logging.DEBUG)
 
 HELP = "Connect OMERO to the napari image viewer"
 
@@ -75,6 +85,11 @@ class NapariControl(BaseControl):
                 "of lazy-loading each plane when needed"
             ),
         )
+        view.add_argument(
+            "--zarr",
+            action="store_true",
+            help=("Use xpublish read zarr data")
+        )
 
     @gateway_required
     def view(self, args):
@@ -89,7 +104,7 @@ class NapariControl(BaseControl):
 
                 add_buttons(viewer, img)
 
-                load_omero_image(viewer, img, eager=args.eager)
+                load_omero_image(viewer, img, eager=args.eager, use_zarr=args.zarr)
                 # add 'conn' and 'omero_image' to the viewer console
                 viewer.update_console({"conn": self.gateway,
                                        "omero_image": img})
@@ -122,7 +137,7 @@ def add_buttons(viewer, img):
     viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
 
 
-def load_omero_image(viewer, image, eager=False):
+def load_omero_image(viewer, image, eager=False, use_zarr=False):
     """
     Entry point - can be called to initially load an image
     from OMERO into the napari viewer
@@ -130,26 +145,60 @@ def load_omero_image(viewer, image, eager=False):
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     :param  eager:      If true, load all planes immediately
+    :param  use_zarr:   If true, load zarr via xpublish
     """
-    for c, channel in enumerate(image.getChannels()):
-        print("loading channel %s:" % c)
-        load_omero_channel(viewer, image, channel, c, eager)
 
+    n = datetime.now()
+    if use_zarr:
+
+        cache_size_mb = 2048
+        # group '0' is for highest resolution pyramid
+        # see https://github.com/ome/omero-ms-zarr/pull/8/files#diff-958e7270f96f5407d7d980f500805b1b
+        resolution = '0'
+        cfg = {
+            'anon': True,
+            'client_kwargs': {
+                'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+            },
+            'root': 'idr/zarr/%s.zarr/%s/' % (image.id, resolution)
+        }
+        s3 = s3fs.S3FileSystem(
+            anon=cfg['anon'],
+            client_kwargs=cfg['client_kwargs'],
+        )
+        store = s3fs.S3Map(root=cfg['root'], s3=s3, check=False)
+        cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
+        # data.shape is (t, c, z, y, x) by convention
+        data = da.from_zarr(cached_store)
+
+        for c, channel in enumerate(image.getChannels()):
+            # slice to get channel
+            ch_data = data[:, c, :, :, :]
+            load_omero_channel(viewer, image, channel, c, ch_data)
+
+    else:
+        for c, channel in enumerate(image.getChannels()):
+            print("loading channel %s:" % c)
+            if eager:
+                data = get_data(image, c=c)
+            else:
+                data = get_data_lazy(image, c=c)
+            load_omero_channel(viewer, image, channel, c, data)
+
+    # If lazy-loading data. This will load data for default Z/T positions
     set_dims_defaults(viewer, image)
     set_dims_labels(viewer, image)
 
+    print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
 
-def load_omero_channel(viewer, image, channel, c_index, eager=False):
+
+def load_omero_channel(viewer, image, channel, c_index, data):
     """
     Loads a channel from OMERO image into the napari viewer
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     """
-    if eager:
-        data = get_data(image, c=c_index)
-    else:
-        data = get_data_lazy(image, c=c_index)
     # use current rendering settings from OMERO
     color = channel.getColor().getRGB()
     color = [r / 256 for r in color]
@@ -170,6 +219,7 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
     #     if size_x is not None and size_z is not None:
     #         z_scale = [1, size_z / size_x, 1, 1]
     name = channel.getLabel()
+    print('window', c_index, win_start, win_end)
     layer = viewer.add_image(
         data,
         blending="additive",
@@ -177,9 +227,12 @@ def load_omero_channel(viewer, image, channel, c_index, eager=False):
         scale=z_scale,
         name=name,
         visible=active,
+        contrast_limits = [win_start, win_end],
     )
-    layer._contrast_limits_range = [win_min, win_max]
-    layer.contrast_limits = [win_start, win_end]
+    # TODO: we want to set the contrast_limits in add_image() so that
+    # we don't load extra data to calculate this.
+    # BUT, this gets ignored if you include the line below
+    # layer._contrast_limits_range = [win_min, win_max]
     return layer
 
 
