@@ -150,17 +150,17 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
 
     n = datetime.now()
     if use_zarr:
-        # fs = HTTPFileSystem()
-        # http_map = fs.get_mapper('http://0.0.0.0:9000')
-        # zg = zarr.open_consolidated(http_map, mode='r')
 
         cache_size_mb = 2048
+        # group '0' is for highest resolution pyramid
+        # see https://github.com/ome/omero-ms-zarr/pull/8/files#diff-958e7270f96f5407d7d980f500805b1b
+        resolution = '0'
         cfg = {
             'anon': True,
             'client_kwargs': {
                 'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
             },
-            'root': 'idr/zarr/%s.zarr' % image.id,
+            'root': 'idr/zarr/%s.zarr/%s/' % (image.id, resolution)
         }
         s3 = s3fs.S3FileSystem(
             anon=cfg['anon'],
