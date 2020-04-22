@@ -13,9 +13,14 @@ Install conda from https://docs.conda.io/en/latest/miniconda.html, then::
     conda env create -f environment.yml
     conda activate omero-napari
 
-    # Install omero-napari
+    # Install omero-napari from pypi
 
     pip install omero-napari
+
+    # OR, Install omero-napari for development...
+
+    cd omero-napari
+    pip install -e .
 
     # View an image in OMERO (will prompt for server and login)
 
