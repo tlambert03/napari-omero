@@ -90,6 +90,10 @@ class NapariControl(BaseControl):
             action="store_true",
             help=("Use xpublish read zarr data")
         )
+        view.add_argument(
+            "--resolutions", type=int, default=1,
+            help=("Number of resulutions for zarr image")
+        )
 
     @gateway_required
     def view(self, args):
@@ -104,7 +108,7 @@ class NapariControl(BaseControl):
 
                 add_buttons(viewer, img)
 
-                load_omero_image(viewer, img, eager=args.eager, use_zarr=args.zarr)
+                load_omero_image(viewer, img, args)
                 # add 'conn' and 'omero_image' to the viewer console
                 viewer.update_console({"conn": self.gateway,
                                        "omero_image": img})
@@ -137,7 +141,7 @@ def add_buttons(viewer, img):
     viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
 
 
-def load_omero_image(viewer, image, eager=False, use_zarr=False):
+def load_omero_image(viewer, image, args):
     """
     Entry point - can be called to initially load an image
     from OMERO into the napari viewer
@@ -149,32 +153,41 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
     """
 
     n = datetime.now()
+    eager=args.eager
+    use_zarr=args.zarr
     if use_zarr:
 
         cache_size_mb = 2048
+
         # group '0' is for highest resolution pyramid
         # see https://github.com/ome/omero-ms-zarr/pull/8/files#diff-958e7270f96f5407d7d980f500805b1b
-        resolution = '0'
-        cfg = {
-            'anon': True,
-            'client_kwargs': {
-                'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
-            },
-            'root': 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
-        }
-        s3 = s3fs.S3FileSystem(
-            anon=cfg['anon'],
-            client_kwargs=cfg['client_kwargs'],
-        )
-        store = s3fs.S3Map(root=cfg['root'], s3=s3, check=False)
-        cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
-        # data.shape is (t, c, z, y, x) by convention
-        data = da.from_zarr(cached_store)
 
+        # TODO: can we look-up resolutions from zarr metadata?
+        resolutions=args.resolutions
+        pyramid = []
+        for resolution in range(resolutions):
+            s3 = s3fs.S3FileSystem(
+                anon=True,
+                client_kwargs={
+                    'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+                },
+            )
+            root = 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
+            store = s3fs.S3Map(root=root, s3=s3, check=False)
+            cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
+            # data.shape is (t, c, z, y, x) by convention
+            data = da.from_zarr(cached_store)
+            pyramid.append(data)
+        is_pyramid = len(pyramid) > 1
+
+        # Each channel is a separate 'image' in napari (different rendering settings etc.)
         for c, channel in enumerate(image.getChannels()):
             # slice to get channel
-            ch_data = data[:, c, :, :, :]
-            load_omero_channel(viewer, image, channel, c, ch_data)
+            ch_data = [data[:, c, :, :, :] for data in pyramid]
+            if not is_pyramid:
+                ch_data = ch_data[0]
+            load_omero_channel(viewer, image, channel, c, ch_data,
+                               is_pyramid=is_pyramid)
 
     else:
         for c, channel in enumerate(image.getChannels()):
@@ -192,7 +205,7 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
     print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
 
 
-def load_omero_channel(viewer, image, channel, c_index, data):
+def load_omero_channel(viewer, image, channel, c_index, data, is_pyramid=False):
     """
     Loads a channel from OMERO image into the napari viewer
 
@@ -228,6 +241,7 @@ def load_omero_channel(viewer, image, channel, c_index, data):
         name=name,
         visible=active,
         contrast_limits = [win_start, win_end],
+        is_pyramid=is_pyramid,
     )
     # TODO: we want to set the contrast_limits in add_image() so that
     # we don't load extra data to calculate this.
