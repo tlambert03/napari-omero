@@ -8,14 +8,19 @@ connect to OMERO.
 
 Install conda from https://docs.conda.io/en/latest/miniconda.html, then::
 
-    # Create a conda environment named 'napari' and install omero-py
+    # Create a conda environment named 'omero-napari'
 
-    conda create -n napari -c ome python=3.6 zeroc-ice36-python omero-py
-    conda activate napari
+    conda env create -f environment.yml
+    conda activate omero-napari
 
-    # Install omero-napari (includes napari)
+    # Install omero-napari from pypi
 
     pip install omero-napari
+
+    # OR, Install omero-napari for development...
+
+    cd omero-napari
+    pip install -e .
 
     # View an image in OMERO (will prompt for server and login)
 

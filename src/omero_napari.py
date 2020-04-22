@@ -160,7 +160,7 @@ def load_omero_image(viewer, image, eager=False, use_zarr=False):
             'client_kwargs': {
                 'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
             },
-            'root': 'idr/zarr/%s.zarr/%s/' % (image.id, resolution)
+            'root': 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
         }
         s3 = s3fs.S3FileSystem(
             anon=cfg['anon'],
