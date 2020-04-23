@@ -252,28 +252,26 @@ def load_omero_channel(viewer, image, channel, c_index, data, is_pyramid=False):
 
 def get_data(img, c=0):
     """
-    Get n-dimensional numpy array of pixel data for the OMERO image.
+    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x)
 
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
     """
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    # get all planes we need
-    zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
+    size_z = img.getSizeZ()
+    size_t = img.getSizeT()
+    # get all planes we need in a single generator
+    zct_list = [(z, c, t) for t in range(size_t) for z in range(size_z)]
     pixels = img.getPrimaryPixels()
-    planes = []
-    for p in pixels.getPlanes(zct_list):
-        # self.ctx.out(".", newline=False)
-        planes.append(p)
-    # self.ctx.out("")
-    if sz == 1 or st == 1:
-        return numpy.array(planes)
-    # arrange plane list into 2D numpy array of planes
-    z_stacks = []
-    for t in range(st):
-        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
-    return numpy.array(z_stacks)
+    plane_gen = pixels.getPlanes(zct_list)
+
+    t_stacks = []
+    for t in range(size_t):
+        z_stack = []
+        for z in range(size_z):
+            print('plane c:%s, t:%s, z:%s' % (c, t, z))
+            z_stack.append(next(plane_gen))
+        t_stacks.append(numpy.array(z_stack))
+    return numpy.array(t_stacks)
 
 
 plane_cache = {}
@@ -286,10 +284,8 @@ def get_data_lazy(img, c=0):
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
     """
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    plane_names = ["%s,%s,%s" % (z, c, t)
-                   for t in range(st) for z in range(sz)]
+    size_z = img.getSizeZ()
+    size_t = img.getSizeT()
 
     def get_plane(plane_name):
         if plane_name in plane_cache:
@@ -306,21 +302,17 @@ def get_data_lazy(img, c=0):
     plane_shape = (size_y, size_x)
     numpy_type = get_numpy_pixel_type(img)
 
-    lazy_imread = delayed(get_plane)  # lazy reader
-    lazy_arrays = [lazy_imread(pn) for pn in plane_names]
-    dask_arrays = [
-        da.from_delayed(delayed_reader, shape=plane_shape, dtype=numpy_type)
-        for delayed_reader in lazy_arrays
-    ]
-    # Stack into one large dask.array
-    if sz == 1 or st == 1:
-        return da.stack(dask_arrays, axis=0)
+    lazy_reader = delayed(get_plane)  # lazy reader
 
-    z_stacks = []
-    for t in range(st):
-        z_stacks.append(da.stack(dask_arrays[t * sz: (t + 1) * sz], axis=0))
-    stack = da.stack(z_stacks, axis=0)
-    return stack
+    t_stacks = []
+    for t in range(size_t):
+        z_stack = []
+        for z in range(size_z):
+            plane_name = "%s,%s,%s" % (z, c, t)
+            lazy_plane = da.from_delayed(lazy_reader(plane_name), shape=plane_shape, dtype=numpy_type)
+            z_stack.append(lazy_plane)
+        t_stacks.append(da.stack(z_stack))
+    return da.stack(t_stacks)
 
 
 def get_numpy_pixel_type(image):
