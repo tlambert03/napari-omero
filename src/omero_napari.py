@@ -162,7 +162,20 @@ def load_omero_image(viewer, image, args):
         # group '0' is for highest resolution pyramid
         # see https://github.com/ome/omero-ms-zarr/pull/8/files#diff-958e7270f96f5407d7d980f500805b1b
 
-        # TODO: can we look-up resolutions from zarr metadata?
+        # TODO: try to look-up resolutions from zarr metadata...
+        s3 = s3fs.S3FileSystem(
+            anon=True,
+            client_kwargs={
+                'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+            },
+        )
+        # top-level
+        root_url = 'idr/zarr/v0.1/%s.zarr/' % image.id
+        store = s3fs.S3Map(root=root_url, s3=s3, check=False)
+        cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
+        root = zarr.group(store=cached_store)
+        print('attrs dict', root.attrs.asdict())
+
         resolutions=args.resolutions
         pyramid = []
         for resolution in range(resolutions):
