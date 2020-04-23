@@ -372,7 +372,7 @@ def save_rois(viewer, image):
     for layer in viewer.layers:
         if type(layer) == points_layer:
             for p in layer.data:
-                point = create_omero_point(p, image)
+                point = create_omero_point(p)
                 roi = create_roi(conn, image.id, [point])
                 print("Created ROI: %s" % roi.id.val)
         elif type(layer) == shapes_layer:
@@ -383,7 +383,7 @@ def save_rois(viewer, image):
                 shape_types = [layer.shape_type
                                for t in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
-                shape = create_omero_shape(shape_type, data, image)
+                shape = create_omero_shape(shape_type, data)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
                     print("Created ROI: %s" % roi.id.val)
@@ -399,36 +399,29 @@ def get_y(coordinate):
     return coordinate[-2]
 
 
-def get_t(coordinate, image):
-    if image.getSizeT() > 1:
-        return coordinate[0]
-    return 0
+def get_t(coordinate):
+    return coordinate[0]
 
 
-def get_z(coordinate, image):
-    if image.getSizeZ() == 1:
-        return 0
-    if image.getSizeT() == 1:
-        return coordinate[0]
-    # if coordinate includes T and Z... [t, z, x, y]
+def get_z(coordinate):
     return coordinate[1]
 
 
-def create_omero_point(data, image):
+def create_omero_point(data):
     point = PointI()
     point.x = rdouble(get_x(data))
     point.y = rdouble(get_y(data))
-    point.theZ = rint(get_z(data, image))
-    point.theT = rint(get_t(data, image))
+    point.theZ = rint(get_z(data))
+    point.theT = rint(get_t(data))
     return point
 
 
-def create_omero_shape(shape_type, data, image):
+def create_omero_shape(shape_type, data):
     # "line", "path", "polygon", "rectangle", "ellipse"
     # NB: assume all points on same plane.
     # Use first point to get Z and T index
-    z_index = get_z(data[0], image)
-    t_index = get_t(data[0], image)
+    z_index = get_z(data[0])
+    t_index = get_t(data[0])
     shape = None
     if shape_type == "line":
         shape = LineI()
