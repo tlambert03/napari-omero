@@ -340,11 +340,7 @@ def set_dims_labels(viewer, image):
     :param  image:      omero.gateway.ImageWrapper
     """
     # dims (t, z, y, x) for 5D image
-    dims = []
-    if image.getSizeT() > 1:
-        dims.append("T")
-    if image.getSizeZ() > 1:
-        dims.append("Z")
+    dims = 'TZ'
 
     for idx, label in enumerate(dims):
         viewer.dims.set_axis_label(idx, label)
@@ -359,14 +355,10 @@ def set_dims_defaults(viewer, image):
     :param  image:      omero.gateway.ImageWrapper
     """
     # dims (t, z, y, x) for 5D image
-    dims = []
     if image.getSizeT() > 1:
-        dims.append(image.getDefaultT())
+        viewer.dims.set_point(0, image.getDefaultT())
     if image.getSizeZ() > 1:
-        dims.append(image.getDefaultZ())
-
-    for idx, position in enumerate(dims):
-        viewer.dims.set_point(idx, position)
+        viewer.dims.set_point(1, image.getDefaultZ())
 
 
 def save_rois(viewer, image):
