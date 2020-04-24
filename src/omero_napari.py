@@ -94,6 +94,11 @@ class NapariControl(BaseControl):
             "--resolutions", type=int, default=1,
             help=("Number of resulutions for zarr image")
         )
+        view.add_argument(
+            "--endpoint_url", type=str,
+            default="https://minio-dev.openmicroscopy.org/",
+            help=("Specify S3 url endpoint to load zarr files")
+        )
 
     @gateway_required
     def view(self, args):
@@ -169,7 +174,7 @@ def load_omero_image(viewer, image, args):
             s3 = s3fs.S3FileSystem(
                 anon=True,
                 client_kwargs={
-                    'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+                    'endpoint_url': args.endpoint_url,
                 },
             )
             root = 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
