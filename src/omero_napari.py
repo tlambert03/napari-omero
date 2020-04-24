@@ -257,28 +257,26 @@ def load_omero_channel(viewer, image, channel, c_index, data, is_pyramid=False):
 
 def get_data(img, c=0):
     """
-    Get n-dimensional numpy array of pixel data for the OMERO image.
+    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x)
 
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
     """
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    # get all planes we need
-    zct_list = [(z, c, t) for t in range(st) for z in range(sz)]
+    size_z = img.getSizeZ()
+    size_t = img.getSizeT()
+    # get all planes we need in a single generator
+    zct_list = [(z, c, t) for t in range(size_t) for z in range(size_z)]
     pixels = img.getPrimaryPixels()
-    planes = []
-    for p in pixels.getPlanes(zct_list):
-        # self.ctx.out(".", newline=False)
-        planes.append(p)
-    # self.ctx.out("")
-    if sz == 1 or st == 1:
-        return numpy.array(planes)
-    # arrange plane list into 2D numpy array of planes
-    z_stacks = []
-    for t in range(st):
-        z_stacks.append(numpy.array(planes[t * sz: (t + 1) * sz]))
-    return numpy.array(z_stacks)
+    plane_gen = pixels.getPlanes(zct_list)
+
+    t_stacks = []
+    for t in range(size_t):
+        z_stack = []
+        for z in range(size_z):
+            print('plane c:%s, t:%s, z:%s' % (c, t, z))
+            z_stack.append(next(plane_gen))
+        t_stacks.append(numpy.array(z_stack))
+    return numpy.array(t_stacks)
 
 
 plane_cache = {}
@@ -291,10 +289,8 @@ def get_data_lazy(img, c=0):
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
     """
-    sz = img.getSizeZ()
-    st = img.getSizeT()
-    plane_names = ["%s,%s,%s" % (z, c, t)
-                   for t in range(st) for z in range(sz)]
+    size_z = img.getSizeZ()
+    size_t = img.getSizeT()
 
     def get_plane(plane_name):
         if plane_name in plane_cache:
@@ -311,21 +307,17 @@ def get_data_lazy(img, c=0):
     plane_shape = (size_y, size_x)
     numpy_type = get_numpy_pixel_type(img)
 
-    lazy_imread = delayed(get_plane)  # lazy reader
-    lazy_arrays = [lazy_imread(pn) for pn in plane_names]
-    dask_arrays = [
-        da.from_delayed(delayed_reader, shape=plane_shape, dtype=numpy_type)
-        for delayed_reader in lazy_arrays
-    ]
-    # Stack into one large dask.array
-    if sz == 1 or st == 1:
-        return da.stack(dask_arrays, axis=0)
+    lazy_reader = delayed(get_plane)  # lazy reader
 
-    z_stacks = []
-    for t in range(st):
-        z_stacks.append(da.stack(dask_arrays[t * sz: (t + 1) * sz], axis=0))
-    stack = da.stack(z_stacks, axis=0)
-    return stack
+    t_stacks = []
+    for t in range(size_t):
+        z_stack = []
+        for z in range(size_z):
+            plane_name = "%s,%s,%s" % (z, c, t)
+            lazy_plane = da.from_delayed(lazy_reader(plane_name), shape=plane_shape, dtype=numpy_type)
+            z_stack.append(lazy_plane)
+        t_stacks.append(da.stack(z_stack))
+    return da.stack(t_stacks)
 
 
 def get_numpy_pixel_type(image):
@@ -353,11 +345,7 @@ def set_dims_labels(viewer, image):
     :param  image:      omero.gateway.ImageWrapper
     """
     # dims (t, z, y, x) for 5D image
-    dims = []
-    if image.getSizeT() > 1:
-        dims.append("T")
-    if image.getSizeZ() > 1:
-        dims.append("Z")
+    dims = 'TZ'
 
     for idx, label in enumerate(dims):
         viewer.dims.set_axis_label(idx, label)
@@ -372,14 +360,10 @@ def set_dims_defaults(viewer, image):
     :param  image:      omero.gateway.ImageWrapper
     """
     # dims (t, z, y, x) for 5D image
-    dims = []
     if image.getSizeT() > 1:
-        dims.append(image.getDefaultT())
+        viewer.dims.set_point(0, image.getDefaultT())
     if image.getSizeZ() > 1:
-        dims.append(image.getDefaultZ())
-
-    for idx, position in enumerate(dims):
-        viewer.dims.set_point(idx, position)
+        viewer.dims.set_point(1, image.getDefaultZ())
 
 
 def save_rois(viewer, image):
@@ -393,7 +377,7 @@ def save_rois(viewer, image):
     for layer in viewer.layers:
         if type(layer) == points_layer:
             for p in layer.data:
-                point = create_omero_point(p, image)
+                point = create_omero_point(p)
                 roi = create_roi(conn, image.id, [point])
                 print("Created ROI: %s" % roi.id.val)
         elif type(layer) == shapes_layer:
@@ -404,7 +388,7 @@ def save_rois(viewer, image):
                 shape_types = [layer.shape_type
                                for t in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
-                shape = create_omero_shape(shape_type, data, image)
+                shape = create_omero_shape(shape_type, data)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
                     print("Created ROI: %s" % roi.id.val)
@@ -420,36 +404,29 @@ def get_y(coordinate):
     return coordinate[-2]
 
 
-def get_t(coordinate, image):
-    if image.getSizeT() > 1:
-        return coordinate[0]
-    return 0
+def get_t(coordinate):
+    return coordinate[0]
 
 
-def get_z(coordinate, image):
-    if image.getSizeZ() == 1:
-        return 0
-    if image.getSizeT() == 1:
-        return coordinate[0]
-    # if coordinate includes T and Z... [t, z, x, y]
+def get_z(coordinate):
     return coordinate[1]
 
 
-def create_omero_point(data, image):
+def create_omero_point(data):
     point = PointI()
     point.x = rdouble(get_x(data))
     point.y = rdouble(get_y(data))
-    point.theZ = rint(get_z(data, image))
-    point.theT = rint(get_t(data, image))
+    point.theZ = rint(get_z(data))
+    point.theT = rint(get_t(data))
     return point
 
 
-def create_omero_shape(shape_type, data, image):
+def create_omero_shape(shape_type, data):
     # "line", "path", "polygon", "rectangle", "ellipse"
     # NB: assume all points on same plane.
     # Use first point to get Z and T index
-    z_index = get_z(data[0], image)
-    t_index = get_t(data[0], image)
+    z_index = get_z(data[0])
+    t_index = get_t(data[0])
     shape = None
     if shape_type == "line":
         shape = LineI()
