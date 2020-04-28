@@ -88,11 +88,11 @@ class NapariControl(BaseControl):
         view.add_argument(
             "--zarr",
             action="store_true",
-            help=("Use xpublish read zarr data")
+            help=("Use remote Zarr data")
         )
         view.add_argument(
             "--resolutions", type=int, default=1,
-            help=("Number of resulutions for zarr image")
+            help=("Number of resolutions for zarr image")
         )
         view.add_argument(
             "--endpoint_url", type=str,
@@ -154,7 +154,7 @@ def load_omero_image(viewer, image, args):
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
     :param  eager:      If true, load all planes immediately
-    :param  use_zarr:   If true, load zarr via xpublish
+    :param  use_zarr:   If true, load zarr
     """
 
     n = datetime.now()
