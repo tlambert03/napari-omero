@@ -95,7 +95,7 @@ class NapariControl(BaseControl):
             help=("Number of resulutions for zarr image")
         )
         view.add_argument(
-            "--endpoint_url", type=str,
+            "--endpoint-url", "--endpoint_url", type=str,
             default="https://minio-dev.openmicroscopy.org/",
             help=("Specify S3 url endpoint to load zarr files")
         )
