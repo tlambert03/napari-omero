@@ -91,8 +91,9 @@ class NapariControl(BaseControl):
             help=("Use xpublish read zarr data")
         )
         view.add_argument(
-            "--resolutions", type=int, default=1,
-            help=("Number of resulutions for zarr image")
+            "--resolutions",
+            help=("Optional: specify multiscale resolutions for zarr image. E.g. '0,1' or '1-3'."
+                "'0' is the highest resolution. Default is to use all available resolutions")
         )
 
     @gateway_required
@@ -174,11 +175,31 @@ def load_omero_image(viewer, image, args):
         store = s3fs.S3Map(root=root_url, s3=s3, check=False)
         cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
         root = zarr.group(store=cached_store)
-        print('attrs dict', root.attrs.asdict())
+        root_attrs = root.attrs.asdict()
+        # {'multiscales': [{'datasets': [{'path': '0'}, {'path': '1'}], 'version': '0.1'}]}
+        print('root_attrs', root.attrs.asdict())
 
-        resolutions=args.resolutions
+        resolutions = ['0']
+        if args.resolutions is not None:
+            try:
+                if '-' in args.resolutions:
+                    # E.g. 0-2 => [0,1,2]
+                    start, stop = args.resolutions.split('-', 1)
+                    resolutions = list(range(int(start), int(stop) + 1))
+                elif ',' in args.resolutions:
+                    # E.g. 1,2 => [1,2]
+                    resolutions = [int(r) for r in args.resolutions.split(',')]
+                else:
+                    resolutions = [int(args.resolutions)]
+            except ValueError:
+                print('--resolutions should be number, range (0-2) or 0,1')
+                raise
+        elif 'multiscales' in root_attrs:
+            resolutions = [d['path'] for d in root_attrs['multiscales'][0]['datasets']]
+        print('resolutions', resolutions)
+
         pyramid = []
-        for resolution in range(resolutions):
+        for resolution in resolutions:
             s3 = s3fs.S3FileSystem(
                 anon=True,
                 client_kwargs={
