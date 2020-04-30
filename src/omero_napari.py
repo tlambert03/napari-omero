@@ -209,6 +209,8 @@ def load_omero_image(viewer, image, args):
             cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
             # data.shape is (t, c, z, y, x) by convention
             data = da.from_zarr(cached_store)
+            chunk_sizes = [str(c[0]) + (" (+ %s)" % c[-1] if c[-1] != c[0] else '') for c in data.chunks]
+            print('resolution', resolution, 'shape (t, c, z, y, x)', data.shape, 'chunks', chunk_sizes, 'dtype', data.dtype)
             pyramid.append(data)
         is_pyramid = len(pyramid) > 1
 
