@@ -178,8 +178,7 @@ def load_omero_image(viewer, image, args):
         # top-level
         root_url = 'idr/zarr/v0.1/%s.zarr/' % image.id
         store = s3fs.S3Map(root=root_url, s3=s3, check=False)
-        cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
-        root = zarr.group(store=cached_store)
+        root = zarr.group(store=store)
         root_attrs = root.attrs.asdict()
         # {'multiscales': [{'datasets': [{'path': '0'}, {'path': '1'}], 'version': '0.1'}]}
         print('root_attrs', root.attrs.asdict())
@@ -205,12 +204,6 @@ def load_omero_image(viewer, image, args):
 
         pyramid = []
         for resolution in resolutions:
-            s3 = s3fs.S3FileSystem(
-                anon=True,
-                client_kwargs={
-                    'endpoint_url': args.endpoint_url,
-                },
-            )
             root = 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
             store = s3fs.S3Map(root=root, s3=s3, check=False)
             cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
