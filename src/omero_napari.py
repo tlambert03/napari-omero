@@ -172,7 +172,7 @@ def load_omero_image(viewer, image, args):
         s3 = s3fs.S3FileSystem(
             anon=True,
             client_kwargs={
-                'endpoint_url': 'https://minio-dev.openmicroscopy.org/',
+                'endpoint_url': args.endpoint_url,
             },
         )
         # top-level
