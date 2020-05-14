@@ -18,23 +18,14 @@ from napari.layers.shapes.shapes import Shapes as shapes_layer
 from napari.layers.labels.labels import Labels as labels_layer
 from dask import delayed
 import dask.array as da
-from fsspec.implementations.http import HTTPFileSystem
-import zarr
 from qtpy.QtWidgets import QPushButton
 
 import numpy
 
 import sys
-import os
-import s3fs
 from omero.cli import CLI
 from omero.cli import BaseControl
 from omero.cli import ProxyStringType
-
-import logging
-# DEBUG logging for s3fs so we can track remote calls
-logging.basicConfig(level=logging.INFO)
-logging.getLogger('s3fs').setLevel(logging.DEBUG)
 
 HELP = "Connect OMERO to the napari image viewer"
 
@@ -84,21 +75,6 @@ class NapariControl(BaseControl):
                 "Use eager loading to load all planes immediately instead"
                 "of lazy-loading each plane when needed"
             ),
-        )
-        view.add_argument(
-            "--zarr",
-            action="store_true",
-            help=("Use remote Zarr data")
-        )
-        view.add_argument(
-            "--resolutions",
-            help=("Optional: specify multiscale resolutions for zarr image. E.g. '0,1' or '1-3'."
-                "'0' is the highest resolution. Default is to use all available resolutions")
-        )
-        view.add_argument(
-            "--endpoint-url", "--endpoint_url", type=str,
-            default="https://minio-dev.openmicroscopy.org/",
-            help=("Specify S3 url endpoint to load zarr files")
         )
 
     @gateway_required
@@ -154,83 +130,18 @@ def load_omero_image(viewer, image, args):
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
-    :param  eager:      If true, load all planes immediately
-    :param  use_zarr:   If true, load zarr
+    :param  args:       CLI arguments
     """
 
     n = datetime.now()
     eager=args.eager
-    use_zarr=args.zarr
-    if use_zarr:
-
-        cache_size_mb = 2048
-
-        # group '0' is for highest resolution pyramid
-        # see https://github.com/ome/omero-ms-zarr/pull/8/files#diff-958e7270f96f5407d7d980f500805b1b
-
-        # TODO: try to look-up resolutions from zarr metadata...
-        s3 = s3fs.S3FileSystem(
-            anon=True,
-            client_kwargs={
-                'endpoint_url': args.endpoint_url,
-            },
-        )
-        # top-level
-        root_url = 'idr/zarr/v0.1/%s.zarr/' % image.id
-        store = s3fs.S3Map(root=root_url, s3=s3, check=False)
-        root = zarr.group(store=store)
-        root_attrs = root.attrs.asdict()
-        # {'multiscales': [{'datasets': [{'path': '0'}, {'path': '1'}], 'version': '0.1'}]}
-        print('root_attrs', root.attrs.asdict())
-
-        resolutions = ['0']
-        if args.resolutions is not None:
-            try:
-                if '-' in args.resolutions:
-                    # E.g. 0-2 => [0,1,2]
-                    start, stop = args.resolutions.split('-', 1)
-                    resolutions = list(range(int(start), int(stop) + 1))
-                elif ',' in args.resolutions:
-                    # E.g. 1,2 => [1,2]
-                    resolutions = [int(r) for r in args.resolutions.split(',')]
-                else:
-                    resolutions = [int(args.resolutions)]
-            except ValueError:
-                print('--resolutions should be number, range (0-2) or 0,1')
-                raise
-        elif 'multiscales' in root_attrs:
-            resolutions = [d['path'] for d in root_attrs['multiscales'][0]['datasets']]
-        print('resolutions', resolutions)
-
-        pyramid = []
-        for resolution in resolutions:
-            root = 'idr/zarr/v0.1/%s.zarr/%s/' % (image.id, resolution)
-            store = s3fs.S3Map(root=root, s3=s3, check=False)
-            cached_store = zarr.LRUStoreCache(store, max_size=(cache_size_mb * 2**20))
-            # data.shape is (t, c, z, y, x) by convention
-            data = da.from_zarr(cached_store)
-            chunk_sizes = [str(c[0]) + (" (+ %s)" % c[-1] if c[-1] != c[0] else '') for c in data.chunks]
-            print('resolution', resolution, 'shape (t, c, z, y, x)', data.shape, 'chunks', chunk_sizes, 'dtype', data.dtype)
-            pyramid.append(data)
-        is_pyramid = len(pyramid) > 1
-
-        # Each channel is a separate 'image' in napari (different rendering settings etc.)
-        for c, channel in enumerate(image.getChannels()):
-            # slice to get channel
-            ch_data = [data[:, c, :, :, :] for data in pyramid]
-            if not is_pyramid:
-                ch_data = ch_data[0]
-            load_omero_channel(viewer, image, channel, c, ch_data,
-                               is_pyramid=is_pyramid)
-
-    else:
-        for c, channel in enumerate(image.getChannels()):
-            print("loading channel %s:" % c)
-            if eager:
-                data = get_data(image, c=c)
-            else:
-                data = get_data_lazy(image, c=c)
-            load_omero_channel(viewer, image, channel, c, data)
+    for c, channel in enumerate(image.getChannels()):
+        print("loading channel %s:" % c)
+        if eager:
+            data = get_data(image, c=c)
+        else:
+            data = get_data_lazy(image, c=c)
+        load_omero_channel(viewer, image, channel, c, data)
 
     # If lazy-loading data. This will load data for default Z/T positions
     set_dims_defaults(viewer, image)
@@ -239,7 +150,7 @@ def load_omero_image(viewer, image, args):
     print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
 
 
-def load_omero_channel(viewer, image, channel, c_index, data, is_pyramid=False):
+def load_omero_channel(viewer, image, channel, c_index, data):
     """
     Loads a channel from OMERO image into the napari viewer
 
@@ -275,7 +186,6 @@ def load_omero_channel(viewer, image, channel, c_index, data, is_pyramid=False):
         name=name,
         visible=active,
         contrast_limits = [win_start, win_end],
-        is_pyramid=is_pyramid,
     )
     # TODO: we want to set the contrast_limits in add_image() so that
     # we don't load extra data to calculate this.
