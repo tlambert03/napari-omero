@@ -8,5 +8,5 @@ setup(
     packages=find_packages(),
     version="0.1.0",
     entry_points={"napari.plugin": ["omero = napari_omero.plugin"]},
-    install_requires=['omero-py', 'napari']
+    install_requires=['omero-py', 'napari[all]']
 )
