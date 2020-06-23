@@ -14,7 +14,7 @@ setup(
     package_dir={"": "src"},
     install_requires=["napari[all]>=0.3.0", "omero-py"],
     keywords=["OMERO.CLI", "plugin", "napari"],
-    entry_points={"napari.plugin": ["omero = napari_omero.plugin"]},
+    entry_points={"napari.plugin": ["omero = omero_napari.plugins.napari"]},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Plugins",
