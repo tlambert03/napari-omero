@@ -1,4 +1,4 @@
-# napari-omero
+# omero-napari
 
 This package provides interoperability between OMERO and napari. Including a GUI
 interface for OMERO within napari, and command line interface extensions:
@@ -85,3 +85,11 @@ pip install git+git://github.com/tlambert03/napari-omero
 
 - experimental & definitely still buggy!  Feel free to report issues.
 - remote loading can be very slow still... though this is not really an issue of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data fetching time can be significant.  Plans for [asynchronous rendering](https://napari.org/docs/explanations/rendering.html) may eventually improve the subjective performance... but remote data loading will likely always be a limitation here.
+
+## contributions
+
+Contributions are welcome.  Please submit a PR.
+
+The original OMERO data loader and CLI extension was created by [Will Moore](https://github.com/will-moore).
+
+The napari reader plugin and GUI browser was created by [Talley Lambert](https://github.com/tlambert03/)
