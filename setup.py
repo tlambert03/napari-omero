@@ -10,7 +10,7 @@ setup(
     description="OMERO/napari interoperability",
     long_description=long_description,
     author="The Open Microscopy and napari teams",
-    packages=["", "omero.plugins"],
+    packages=["omero_napari", "omero.plugins"],
     package_dir={"": "src"},
     install_requires=["napari[all]>=0.3.0", "omero-py"],
     keywords=["OMERO.CLI", "plugin", "napari"],
