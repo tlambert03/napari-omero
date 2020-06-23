@@ -1,7 +1,7 @@
 import napari
 from qtpy.QtCore import Qt
 
-from napari_omero.widgets.main import OMEROWidget
+from .widgets import OMEROWidget
 
 with napari.gui_qt():
     viewer = napari.Viewer()

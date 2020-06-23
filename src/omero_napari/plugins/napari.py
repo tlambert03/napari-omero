@@ -25,7 +25,7 @@ from omero.model.enums import (
 from omero.util.sessions import SessionsStore
 from vispy.color import Colormap
 
-from .widgets.gateway import QGateWay
+from ..widgets import QGateWay
 
 logger = logging.getLogger(__name__)
 
