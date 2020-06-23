@@ -1,31 +1,30 @@
+import sys
+import time
 from functools import wraps
-from datetime import datetime
-
-import omero.clients  # noqa
-from omero.rtypes import rdouble, rint, rstring
-from omero.model import PointI, ImageI, RoiI, LineI, \
-    PolylineI, PolygonI, RectangleI, EllipseI
-from omero.gateway import BlitzGateway, PixelsWrapper
-from omero.model.enums import PixelsTypeint8, PixelsTypeuint8, PixelsTypeint16
-from omero.model.enums import PixelsTypeuint16, PixelsTypeint32
-from omero.model.enums import PixelsTypeuint32, PixelsTypefloat
-from omero.model.enums import PixelsTypedouble
-
-from vispy.color import Colormap
-import napari
-from napari.layers.points.points import Points as points_layer
-from napari.layers.shapes.shapes import Shapes as shapes_layer
-from napari.layers.labels.labels import Labels as labels_layer
-from dask import delayed
-import dask.array as da
-from qtpy.QtWidgets import QPushButton
 
 import numpy
+from qtpy.QtWidgets import QPushButton
 
-import sys
-from omero.cli import CLI
-from omero.cli import BaseControl
-from omero.cli import ProxyStringType
+import napari
+import omero.clients  # noqa
+from napari.layers.labels.labels import Labels as labels_layer
+from napari.layers.points.points import Points as points_layer
+from napari.layers.shapes.shapes import Shapes as shapes_layer
+from omero.cli import CLI, BaseControl, ProxyStringType
+from omero.gateway import BlitzGateway, PixelsWrapper
+from omero.model import (
+    EllipseI,
+    ImageI,
+    LineI,
+    PointI,
+    PolygonI,
+    PolylineI,
+    RectangleI,
+    RoiI,
+)
+from omero.rtypes import rdouble, rint, rstring
+
+from ..utils import lookup_obj, obj_to_proxy_string
 
 HELP = "Connect OMERO to the napari image viewer"
 
@@ -43,7 +42,7 @@ def gateway_required(func):
     def _wrapper(self, *args, **kwargs):
         self.client = self.ctx.conn(*args)
         self.gateway = BlitzGateway(client_obj=self.client)
-
+        print(self.gateway)
         try:
             return func(self, *args, **kwargs)
         finally:
@@ -81,8 +80,11 @@ class NapariControl(BaseControl):
     def view(self, args):
 
         if isinstance(args.object, ImageI):
-            image_id = args.object.id
-            img = self._lookup(self.gateway, "Image", image_id)
+            try:
+                img = lookup_obj(self.gateway, args.object)
+            except NameError:
+                self.ctx.die(110, "No such %s: %s" % (type, args.object.id))
+
             self.ctx.out("View image: %s" % img.name)
 
             with napari.gui_qt():
@@ -90,18 +92,14 @@ class NapariControl(BaseControl):
 
                 add_buttons(viewer, img)
 
-                load_omero_image(viewer, img, args)
-                # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console({"conn": self.gateway,
-                                       "omero_image": img})
+                n = time.time()
+                viewer.open(obj_to_proxy_string(args.object), plugin="omero")
+                set_dims_defaults(viewer, img)
+                set_dims_labels(viewer, img)
+                print(f"time to load_omero_image(): {time.time() - n:.4f} s")
 
-    def _lookup(self, gateway, type, oid):
-        """Find object of type by ID."""
-        gateway.SERVICE_OPTS.setOmeroGroup("-1")
-        obj = gateway.getObject(type, oid)
-        if not obj:
-            self.ctx.die(110, "No such %s: %s" % (type, oid))
-        return obj
+                # add 'conn' and 'omero_image' to the viewer console
+                viewer.update_console({"conn": self.gateway, "omero_image": img})
 
 
 # Register omero_napari as an OMERO CLI plugin
@@ -115,83 +113,13 @@ def add_buttons(viewer, img):
     """
     Add custom buttons to the viewer UI
     """
+
     def handle_save_rois():
         save_rois(viewer, img)
 
     button = QPushButton("Save ROIs to OMERO")
     button.clicked.connect(handle_save_rois)
     viewer.window.add_dock_widget(button, name="Save OMERO", area="left")
-
-
-def load_omero_image(viewer, image, args):
-    """
-    Entry point - can be called to initially load an image
-    from OMERO into the napari viewer
-
-    :param  viewer:     napari viewer instance
-    :param  image:      omero.gateway.ImageWrapper
-    :param  args:       CLI arguments
-    """
-
-    n = datetime.now()
-    eager=args.eager
-    for c, channel in enumerate(image.getChannels()):
-        print("loading channel %s:" % c)
-        if eager:
-            data = get_data(image, c=c)
-        else:
-            data = get_data_lazy(image, c=c)
-        load_omero_channel(viewer, image, channel, c, data)
-
-    # If lazy-loading data. This will load data for default Z/T positions
-    set_dims_defaults(viewer, image)
-    set_dims_labels(viewer, image)
-
-    print("time to load_omero_image(): ", (datetime.now() - n).total_seconds())
-
-
-def load_omero_channel(viewer, image, channel, c_index, data):
-    """
-    Loads a channel from OMERO image into the napari viewer
-
-    :param  viewer:     napari viewer instance
-    :param  image:      omero.gateway.ImageWrapper
-    """
-    # use current rendering settings from OMERO
-    color = channel.getColor().getRGB()
-    color = [r / 256 for r in color]
-    cmap = Colormap([[0, 0, 0], color])
-    win_start = channel.getWindowStart()
-    win_end = channel.getWindowEnd()
-    win_min = channel.getWindowMin()
-    win_max = channel.getWindowMax()
-    active = channel.isActive()
-    z_scale = None
-    # Z-scale for 3D viewing
-    #  NB: This can cause unexpected behaviour
-    #  https://forum.image.sc/t/napari-non-integer-step-size/31847
-    #  And breaks viewer.dims.set_point(idx, position)
-    # if image.getSizeZ() > 1:
-    #     size_x = image.getPixelSizeX()
-    #     size_z = image.getPixelSizeZ()
-    #     if size_x is not None and size_z is not None:
-    #         z_scale = [1, size_z / size_x, 1, 1]
-    name = channel.getLabel()
-    print('window', c_index, win_start, win_end)
-    layer = viewer.add_image(
-        data,
-        blending="additive",
-        colormap=("from_omero", cmap),
-        scale=z_scale,
-        name=name,
-        visible=active,
-        contrast_limits = [win_start, win_end],
-    )
-    # TODO: we want to set the contrast_limits in add_image() so that
-    # we don't load extra data to calculate this.
-    # BUT, this gets ignored if you include the line below
-    # layer._contrast_limits_range = [win_min, win_max]
-    return layer
 
 
 def get_data(img, c=0):
@@ -212,67 +140,10 @@ def get_data(img, c=0):
     for t in range(size_t):
         z_stack = []
         for z in range(size_z):
-            print('plane c:%s, t:%s, z:%s' % (c, t, z))
+            print("plane c:%s, t:%s, z:%s" % (c, t, z))
             z_stack.append(next(plane_gen))
         t_stacks.append(numpy.array(z_stack))
     return numpy.array(t_stacks)
-
-
-plane_cache = {}
-
-
-def get_data_lazy(img, c=0):
-    """
-    Get n-dimensional dask array, with delayed reading from OMERO image.
-
-    :param  img:        omero.gateway.ImageWrapper
-    :c      int:        Channel index
-    """
-    size_z = img.getSizeZ()
-    size_t = img.getSizeT()
-
-    def get_plane(plane_name):
-        if plane_name in plane_cache:
-            return plane_cache[plane_name]
-        z, c, t = [int(n) for n in plane_name.split(",")]
-        print("get_plane", z, c, t)
-        pixels = img.getPrimaryPixels()
-        p = pixels.getPlane(z, c, t)
-        plane_cache[plane_name] = p
-        return p
-
-    size_x = img.getSizeX()
-    size_y = img.getSizeY()
-    plane_shape = (size_y, size_x)
-    numpy_type = get_numpy_pixel_type(img)
-
-    lazy_reader = delayed(get_plane)  # lazy reader
-
-    t_stacks = []
-    for t in range(size_t):
-        z_stack = []
-        for z in range(size_z):
-            plane_name = "%s,%s,%s" % (z, c, t)
-            lazy_plane = da.from_delayed(lazy_reader(plane_name), shape=plane_shape, dtype=numpy_type)
-            z_stack.append(lazy_plane)
-        t_stacks.append(da.stack(z_stack))
-    return da.stack(t_stacks)
-
-
-def get_numpy_pixel_type(image):
-    pixels = image.getPrimaryPixels()
-    pixelTypes = {
-        PixelsTypeint8: numpy.int8,
-        PixelsTypeuint8: numpy.uint8,
-        PixelsTypeint16: numpy.int16,
-        PixelsTypeuint16: numpy.uint16,
-        PixelsTypeint32: numpy.int32,
-        PixelsTypeuint32: numpy.uint32,
-        PixelsTypefloat: numpy.float32,
-        PixelsTypedouble: numpy.float64,
-    }
-    pixelType = pixels.getPixelsType().value
-    return pixelTypes.get(pixelType, None)
 
 
 def set_dims_labels(viewer, image):
@@ -284,7 +155,7 @@ def set_dims_labels(viewer, image):
     :param  image:      omero.gateway.ImageWrapper
     """
     # dims (t, z, y, x) for 5D image
-    dims = 'TZ'
+    dims = "TZ"
 
     for idx, label in enumerate(dims):
         viewer.dims.set_axis_label(idx, label)
@@ -324,15 +195,14 @@ def save_rois(viewer, image):
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [layer.shape_type
-                               for t in range(len(layer.data))]
+                shape_types = [layer.shape_type for t in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
                     print("Created ROI: %s" % roi.id.val)
         elif type(layer) == labels_layer:
-            print('Saving Labels not supported')
+            print("Saving Labels not supported")
 
 
 def get_x(coordinate):
@@ -400,9 +270,7 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
-                    x1, y1, x2, y2, x3, y3, x4, y4
-                )
+                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (x1, y1, x2, y2, x3, y3, x4, y4)
                 shape.points = rstring(points)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)

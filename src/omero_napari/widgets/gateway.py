@@ -3,7 +3,8 @@ from typing import Callable, Optional, Tuple
 
 from napari.qt.threading import WorkerBase, create_worker
 from omero.clients import BaseClient
-from omero.gateway import BlitzGateway
+from omero.gateway import BlitzGateway, PixelsWrapper
+import omero.gateway
 from omero.util.sessions import SessionsStore
 from qtpy.QtCore import QObject, Signal
 
@@ -129,9 +130,7 @@ class QGateWay(QObject):
     def create_session(self, host: str, port: str, username: str, password: str):
         return self._submit(self._create_session, host, port, username, password)
 
-    def _create_session(
-        self, host: str, port: str, username: str, password: str
-    ) -> SessionStats:
+    def _create_session(self, host: str, port: str, username: str, password: str):
         self.status.emit("connecting...")
         try:
             session = self.store.create(
@@ -161,3 +160,26 @@ class QGateWay(QObject):
         self.connected.emit(self.conn)
         self.status.emit("")
         return self.conn
+
+
+class NonCachedPixelsWrapper(PixelsWrapper):
+    """Extend gateway.PixelWrapper to override _prepareRawPixelsStore."""
+
+    def _prepareRawPixelsStore(self):
+        """
+        Creates RawPixelsStore and sets the id etc
+
+        This overrides the superclass behaviour to make sure that
+        we don't re-use RawPixelStore in multiple processes since
+        the Store may be closed in 1 process while still needed elsewhere.
+        This is needed when napari requests may planes simultaneously,
+        e.g. when switching to 3D view.
+        """
+        ps = self._conn.c.sf.createRawPixelsStore()
+        ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
+        return ps
+
+
+omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
+# Update the BlitzGateway to use our NonCachedPixelsWrapper
+omero.gateway.refreshWrappers()
