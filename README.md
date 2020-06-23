@@ -1,7 +1,12 @@
 # omero-napari
 
-This package provides interoperability between OMERO and napari. Including a GUI
-interface for OMERO within napari, and command line interface extensions:
+This package provides interoperability between the
+[OMERO](https://www.openmicroscopy.org/omero/) image management platform, and
+[napari](https://github.com/napari/napari): a fast, multi-dimensional image
+viewer for python. 
+
+It provides a GUI interface for browsing an OMERO instance from within napari,
+as well as command line interface extensions for both OMERO and napari CLIs.
 
 ![demo](demo.gif)
 
