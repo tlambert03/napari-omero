@@ -1,6 +1,10 @@
+from io import BytesIO
+from math import ceil
+from PIL import Image
 from typing import List
 
 import dask.array as da
+import numpy as np
 
 from dask import delayed
 from vispy.color import Colormap
@@ -63,10 +67,13 @@ def omero_proxy_reader(path: str, proxy_obj: IObject = None) -> List[LayerData]:
 
 
 def load_image_wrapper(image: ImageWrapper) -> List[LayerData]:
-    return [
-        load_omero_channel(image, channel, c)
-        for c, channel in enumerate(image.getChannels())
-    ]
+    if image.requiresPixelsPyramid():
+        return [get_pyramid_lazy(image)]
+    else:
+        return [
+            load_omero_channel(image, channel, c)
+            for c, channel in enumerate(image.getChannels())
+        ]
 
 
 def load_omero_channel(
@@ -135,3 +142,71 @@ def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
         z_stacks.append(da.stack(dask_arrays[t * size_z : (t + 1) * size_z], axis=0))
     stack = da.stack(z_stacks, axis=0)
     return stack
+
+
+@timer
+def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
+    """Get a pyramid of rgb dask arrays, loading tiles from OMERO."""
+    size_z = image.getSizeZ()
+    size_t = image.getSizeT()
+    pixels = image.getPrimaryPixels()
+    dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
+
+    image._prepareRenderingEngine()
+    tile_w, tile_h = image._re.getTileSize()
+
+    def get_tile(tile_name):
+        """ tile_name is 'level,z,t,x,y,w,h' """
+        print('get_tile', tile_name)
+        level, z, t, x, y, w, h = [int(n) for n in tile_name.split(",")]
+        # create a new ImageWrapper (and rendering engine) each time
+        # to avoid sharing re state between processes
+        temp_img = image._conn.getObject('Image', image.id)
+        tile = temp_img.renderJpegRegion(z, t, x, y, w, h, level, compression=1)
+        temp_img._re.close()
+        i = BytesIO(tile)
+        rv = Image.open(i)
+        # i.close()
+        tile_data = np.asarray(rv)
+        return tile_data
+
+    lazy_reader = delayed(get_tile)
+
+    def get_lazy_plane(level, z, c, t):
+        lazy_rows = []
+        for row in range(rows):
+            lazy_row = []
+            for col in range(cols):
+                x = col * tile_w
+                y = row * tile_h
+                w = min(tile_w, size_x - x)
+                h = min(tile_h, size_y - y)
+                tile_name = "%s,%s,%s,%s,%s,%s,%s" % (level, z, t, x, y, w, h)
+                lazy_tile = da.from_delayed(lazy_reader(tile_name), shape=(h, w, 3), dtype=dtype)
+                lazy_row.append(lazy_tile)
+            lazy_row = da.concatenate(lazy_row, axis=1)
+            print('lazy_row.shape', lazy_row.shape)
+            lazy_rows.append(lazy_row)
+        return da.concatenate(lazy_rows, axis=0)
+
+    pyramid = []
+    levels_desc = image._re.getResolutionDescriptions()
+    for level, size in enumerate(levels_desc):
+        size_x = size.sizeX
+        size_y = size.sizeY
+        cols = ceil(size_x / tile_w)
+        rows = ceil(size_y / tile_h)
+        level_id = len(levels_desc) - level - 1
+        print('level', level, level_id, size_x, size_y)
+        print ('Cols', cols, 'Rows', rows)
+
+        t_stacks = []
+        for t in range(size_t):
+            z_stack = []
+            c = 0
+            for z in range(size_z):
+                lazy_plane = get_lazy_plane(level_id, z, c, t)
+                z_stack.append(lazy_plane)
+            t_stacks.append(da.stack(z_stack))
+        pyramid.append(da.stack(t_stacks))
+    return (pyramid, {})
