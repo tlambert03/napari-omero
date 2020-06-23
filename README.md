@@ -1,16 +1,30 @@
 # napari-omero
 
-This is an OMERO plugin and gui interface for napari:
+This package provides interoperability between OMERO and napari. Including a GUI
+interface for OMERO within napari, and command line interface extensions:
 
 ![demo](demo.gif)
 
-Data loading mechanisms inspired by [`omero-napari`](https://gitlab.com/openmicroscopy/incubator/omero-napari)
+## Features
 
-Also provides a napari reader plugin that accepts two omero resource formats:
+- GUI interface to browse remote OMERO data, with thumbnail previews.
+- Loads remote nD images from an OMERO server into napari
+- Planes are loading on demand as sliders are moved ("lazy loading").
+- session management (login memory)
+- OMERO rendering settings (contrast limits, colormaps, active channels, current
+  Z/T position) are applied in napari
+
+### as a napari plugin
+
+This package provides a napari reader plugin that accepts OMERO resources as
+"proxy strings" (`Image:<ID>`) or as [OMERO webclient
+URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
 viewer = napari.Viewer()
-viewer.open("Image:1", plugin="omero")  # omero object identifier
+
+# omero object identifier string
+viewer.open("Image:1", plugin="omero")  
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -18,33 +32,56 @@ viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
 
 these will also work on the napari command line interface, e.g.:
 
-```shell
+```bash
 napari Image:1
 # or
 napari http://yourdomain.example.org/omero/webclient/?show=image-314
 ```
 
+### as a napari dock widget
+
+The main OMERO browser widget can be manually added to the napari viewer:
+
+```python
+import napari
+from omero_napari import OMEROWidget
+
+with napari.gui_qt():
+    viewer = napari.Viewer()
+    viewer.window.add_dock_widget(OMEROWidget(), area="right")
+```
+
+Or, to launch napari with this widget added automatically, run:
+
+```bash
+omero_napari
+```
+
+### as an OMERO CLI plugin
+
+This package also serves as a plugin to the OMERO CLI
+
+```bash
+omero napari view Image:1
+```
+
+- ROIs created in napari can be saved back to OMERO via a "Save ROIs" button.
+- napari viewer console has BlitzGateway 'conn' and 'omero_image' in context.
+
 ## installation
 
-This is experimental and not yet published on PyPI.
-Requires python 3.6 due to `omero-py` Ice dependencies.  First install `omero-py`:
+Requires python 3.6 or 3.7 due to `omero-py` Ice dependencies.  First install
+`omero-py`:
 
 ```sh
-conda create -n omero -c ome python=3.6 zeroc-ice36-python omero-py
+conda create -n omero -c ome python=3.7 omero-py
 conda activate omero
+
 # then install this repo from github
 pip install git+git://github.com/tlambert03/napari-omero
 ```
 
-## usage
-
-launch the main interface with
-
-```sh
-python -m napari_omero
-```
-
 ## issues
 
-- totally experimental & still quite buggy!
+- experimental & definitely still buggy!  Feel free to report issues.
 - remote loading can be very slow still... though this is not really an issue of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data fetching time can be significant.  Plans for [asynchronous rendering](https://napari.org/docs/explanations/rendering.html) may eventually improve the subjective performance... but remote data loading will likely always be a limitation here.
