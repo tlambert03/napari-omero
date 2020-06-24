@@ -95,6 +95,9 @@ pip install napari-omero
 
 ## issues
 
+| ❗  | This is alpha software & some things will be broken or sub-optimal!  |
+| --- | -------------------------------------------------------------------- |
+
 - experimental & definitely still buggy!  [Bug
   reports](https://github.com/tlambert03/napari-omero/issues/new) are welcome!
 - remote loading can be very slow still... though this is not strictly an issue
