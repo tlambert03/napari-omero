@@ -1,10 +1,10 @@
-import napari
+from napari import gui_qt, Viewer  # type: ignore  # getting no attribute err
 from qtpy.QtCore import Qt
 
 from .widgets import OMEROWidget
 
-with napari.gui_qt():
-    viewer = napari.Viewer()
+with gui_qt():
+    viewer = Viewer()
     m = OMEROWidget()
     dw = viewer.window.add_dock_widget(m, area="right")
     viewer.window._qt_window.setGeometry(300, 200, 1280, 720)

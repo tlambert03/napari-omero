@@ -1,9 +1,9 @@
-# omero-napari
+# napari-omero
 
 This package provides interoperability between the
 [OMERO](https://www.openmicroscopy.org/omero/) image management platform, and
 [napari](https://github.com/napari/napari): a fast, multi-dimensional image
-viewer for python. 
+viewer for python.
 
 It provides a GUI interface for browsing an OMERO instance from within napari,
 as well as command line interface extensions for both OMERO and napari CLIs.
@@ -29,7 +29,7 @@ URLS](https://help.openmicroscopy.org/urls-to-data.html).
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("Image:1", plugin="omero")  
+viewer.open("Image:1", plugin="omero")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -49,7 +49,7 @@ The main OMERO browser widget can be manually added to the napari viewer:
 
 ```python
 import napari
-from omero_napari import OMEROWidget
+from napari_omero import OMEROWidget
 
 with napari.gui_qt():
     viewer = napari.Viewer()
@@ -59,7 +59,7 @@ with napari.gui_qt():
 Or, to launch napari with this widget added automatically, run:
 
 ```bash
-omero_napari
+napari_omero
 ```
 
 ### as an OMERO CLI plugin
@@ -89,12 +89,19 @@ pip install git+git://github.com/tlambert03/napari-omero
 ## issues
 
 - experimental & definitely still buggy!  Feel free to report issues.
-- remote loading can be very slow still... though this is not really an issue of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data fetching time can be significant.  Plans for [asynchronous rendering](https://napari.org/docs/explanations/rendering.html) may eventually improve the subjective performance... but remote data loading will likely always be a limitation here.
+- remote loading can be very slow still... though this is not really an issue of
+  this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
+  fetching time can be significant.  Plans for [asynchronous
+  rendering](https://napari.org/docs/explanations/rendering.html) may eventually
+  improve the subjective performance... but remote data loading will likely
+  always be a limitation here.
 
 ## contributions
 
 Contributions are welcome.  Please submit a PR.
 
-The original OMERO data loader and CLI extension was created by [Will Moore](https://github.com/will-moore).
+The original OMERO data loader and CLI extension was created by [Will
+Moore](https://github.com/will-moore).
 
-The napari reader plugin and GUI browser was created by [Talley Lambert](https://github.com/tlambert03/)
+The napari reader plugin and GUI browser was created by [Talley
+Lambert](https://github.com/tlambert03/)

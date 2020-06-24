@@ -28,8 +28,12 @@ class OMEROWidget(QWidget):
         self.login.setWindowFlags(self.login.windowFlags() & ~Qt.Dialog)
 
         self.tree.setModel(self.model)
-        self.tree.selectionModel().selectionChanged.connect(self._on_tree_selection)
-        self.thumb_grid.itemSelectionChanged.connect(self._on_thumbnail_selected)
+        self.tree.selectionModel().selectionChanged.connect(
+            self._on_tree_selection
+        )
+        self.thumb_grid.itemSelectionChanged.connect(
+            self._on_thumbnail_selected
+        )
         layout = QVBoxLayout(self)
         self.splitter = QSplitter(Qt.Vertical, self)
         self.status = QLabel(self)
@@ -59,10 +63,13 @@ class OMEROWidget(QWidget):
         wrapper = self.thumb_grid.selectedItems()[0].wrapper
         index: QModelIndex = self.model._wrapper_map.get(wrapper.getId())
         self.tree.selectionModel().select(
-            index, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+            index,
+            QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
         )
 
-    def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
+    def _on_tree_selection(
+        self, selected: QItemSelection, deselected: QItemSelection
+    ):
         item = self.model.itemFromIndex(selected.indexes()[0])
         self.thumb_grid.set_item(item)
 

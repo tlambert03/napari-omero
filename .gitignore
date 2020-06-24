@@ -130,3 +130,5 @@ dmypy.json
 
 .vscode
 .DS_Store
+
+src/napari_omero/_version.py
