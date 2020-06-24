@@ -17,6 +17,9 @@ from omero.model import IObject
 from ..utils import parse_omero_url, timer, lookup_obj, PIXEL_TYPES
 from ..widgets import QGateWay
 
+from dask.cache import Cache
+cache = Cache(2e9)  # Leverage two gigabytes of memory
+cache.register()
 
 @timer
 def get_gateway(path: str, host: str = None) -> BlitzGateway:
