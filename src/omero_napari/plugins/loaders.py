@@ -146,6 +146,7 @@ def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
     stack = da.stack(z_stacks, axis=0)
     return stack
 
+tile_cache = {}
 
 @timer
 def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
@@ -161,6 +162,9 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
     def get_tile(tile_name):
         """ tile_name is 'level,z,t,x,y,w,h' """
         print('get_tile', tile_name)
+        if tile_name in tile_cache:
+            print('using cache...')
+            return tile_cache[tile_name]
         level, z, t, x, y, w, h = [int(n) for n in tile_name.split(",")]
         # create a new ImageWrapper (and rendering engine) each time
         # to avoid sharing re state between processes
@@ -171,6 +175,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
         rv = Image.open(i)
         # i.close()
         tile_data = np.asarray(rv)
+        tile_cache[tile_name] = tile_data
         return tile_data
 
     lazy_reader = delayed(get_tile)
