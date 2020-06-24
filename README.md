@@ -1,5 +1,11 @@
 # napari-omero
 
+[![License](https://img.shields.io/github/license/tlambert03/napari-omero)](LICENSE)
+[![Version](https://img.shields.io/pypi/v/napari-omero.svg)](https://pypi.python.org/pypi/napari-omero)
+[![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero)
+[![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg)](https://python.org)
+![CI](https://github.com/tlambert03/napari-omero/workflows/CI/badge.svg)
+
 This package provides interoperability between the
 [OMERO](https://www.openmicroscopy.org/omero/) image management platform, and
 [napari](https://github.com/napari/napari): a fast, multi-dimensional image
