@@ -2,9 +2,9 @@
 
 [![License](https://img.shields.io/github/license/tlambert03/napari-omero)](LICENSE)
 [![Version](https://img.shields.io/pypi/v/napari-omero.svg)](https://pypi.python.org/pypi/napari-omero)
-[![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg)](https://python.org)
-![CI](https://github.com/tlambert03/napari-omero/workflows/CI/badge.svg)
+[![CI](https://github.com/tlambert03/napari-omero/workflows/CI/badge.svg)](https://github.com/tlambert03/napari-omero/actions)
+<!-- [![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero) -->
 
 This package provides interoperability between the
 [OMERO](https://www.openmicroscopy.org/omero/) image management platform, and
@@ -25,10 +25,30 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
 
+### as a napari dock widget
+
+To launch napari with the OMERO browser added, [install](#installation) this
+package and run:
+
+```bash
+napari_omero
+```
+
+The OMERO browser widget can also be manually added to the napari viewer:
+
+```python
+import napari
+from napari_omero import OMEROWidget
+
+with napari.gui_qt():
+    viewer = napari.Viewer()
+    viewer.window.add_dock_widget(OMEROWidget(), area="right")
+```
+
 ### as a napari plugin
 
 This package provides a napari reader plugin that accepts OMERO resources as
-"proxy strings" (`Image:<ID>`) or as [OMERO webclient
+"proxy strings" (e.g. `Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
@@ -47,25 +67,6 @@ these will also work on the napari command line interface, e.g.:
 napari Image:1
 # or
 napari http://yourdomain.example.org/omero/webclient/?show=image-314
-```
-
-### as a napari dock widget
-
-The main OMERO browser widget can be manually added to the napari viewer:
-
-```python
-import napari
-from napari_omero import OMEROWidget
-
-with napari.gui_qt():
-    viewer = napari.Viewer()
-    viewer.window.add_dock_widget(OMEROWidget(), area="right")
-```
-
-Or, to launch napari with this widget added automatically, run:
-
-```bash
-napari_omero
 ```
 
 ### as an OMERO CLI plugin
