@@ -102,7 +102,7 @@ class NapariControl(BaseControl):
                 viewer.update_console({"conn": self.gateway, "omero_image": img})
 
 
-# Register omero_napari as an OMERO CLI plugin
+# Register napari_omero as an OMERO CLI plugin
 if __name__ == "__main__":
     cli = CLI()
     cli.register("napari", NapariControl, HELP)
@@ -179,7 +179,7 @@ def set_dims_defaults(viewer, image):
 def save_rois(viewer, image):
     """
     Usage: In napari, open console...
-    >>> from omero_napari import *
+    >>> from napari_omero import *
     >>> save_rois(viewer, omero_image)
     """
     conn = image._conn
