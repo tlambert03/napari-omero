@@ -80,7 +80,9 @@ class OMEROTreeModel(QStandardItemModel):
                 for image in list(dataset.listChildren()):
                     ichild = OMEROTreeItem(image)
                     dchild.appendRow(ichild)
-                    self._wrapper_map[image.getId()] = self.indexFromItem(ichild)
+                    self._wrapper_map[image.getId()] = self.indexFromItem(
+                        ichild
+                    )
                     yield
 
     # def canFetchMore(self, index: QModelIndex) -> bool:
@@ -98,4 +100,3 @@ class OMEROTreeModel(QStandardItemModel):
 
     def itemFromIndex(self, index: QModelIndex) -> OMEROTreeItem:
         return super().itemFromIndex(index)
-

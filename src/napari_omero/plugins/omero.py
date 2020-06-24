@@ -99,10 +99,12 @@ class NapariControl(BaseControl):
                 print(f"time to load_omero_image(): {time.time() - n:.4f} s")
 
                 # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console({"conn": self.gateway, "omero_image": img})
+                viewer.update_console(
+                    {"conn": self.gateway, "omero_image": img}
+                )
 
 
-# Register omero_napari as an OMERO CLI plugin
+# Register napari_omero as an OMERO CLI plugin
 if __name__ == "__main__":
     cli = CLI()
     cli.register("napari", NapariControl, HELP)
@@ -179,7 +181,7 @@ def set_dims_defaults(viewer, image):
 def save_rois(viewer, image):
     """
     Usage: In napari, open console...
-    >>> from omero_napari import *
+    >>> from napari_omero import *
     >>> save_rois(viewer, omero_image)
     """
     conn = image._conn
@@ -195,7 +197,9 @@ def save_rois(viewer, image):
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [layer.shape_type for t in range(len(layer.data))]
+                shape_types = [
+                    layer.shape_type for t in range(len(layer.data))
+                ]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
@@ -246,7 +250,7 @@ def create_omero_shape(shape_type, data):
     elif shape_type == "path" or shape_type == "polygon":
         shape = PolylineI() if shape_type == "path" else PolygonI()
         # points = "10,20, 50,150, 200,200, 250,75"
-        points = ["%s,%s" % (get_x(d), get_y(d)) for d in data]
+        points = [f"{get_x(d)},{get_y(d)}" for d in data]
         shape.points = rstring(", ".join(points))
     elif shape_type == "rectangle" or shape_type == "ellipse":
         # corners go anti-clockwise starting top-left
@@ -270,7 +274,7 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (x1, y1, x2, y2, x3, y3, x4, y4)
+                points = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
                 shape.points = rstring(points)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)
