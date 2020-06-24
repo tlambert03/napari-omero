@@ -81,30 +81,55 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.6 or 3.7 due to `omero-py` Ice dependencies.  First install
-`omero-py`:
+Requires python 3.6 or 3.7 due to `omero-py` Ice dependencies.
+It's easiest to install `omero-py` from conda, so the recommended install
+procedure is to first create a new conda environment (here called "`omero`")
+with `omero-py` installed from the `ome` channel, and then use `pip` to
+install `napari-omero` (until we have a conda package available).
 
 ```sh
 conda create -n omero -c ome python=3.7 omero-py
 conda activate omero
-
-# then install this repo from github
-pip install git+git://github.com/tlambert03/napari-omero
+pip install napari-omero
 ```
 
 ## issues
 
-- experimental & definitely still buggy!  Feel free to report issues.
-- remote loading can be very slow still... though this is not really an issue of
-  this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
+- experimental & definitely still buggy!  [Bug
+  reports](https://github.com/tlambert03/napari-omero/issues/new) are welcome!
+- remote loading can be very slow still... though this is not strictly an issue
+  of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
   fetching time can be significant.  Plans for [asynchronous
-  rendering](https://napari.org/docs/explanations/rendering.html) may eventually
-  improve the subjective performance... but remote data loading will likely
-  always be a limitation here.
+  rendering](https://napari.org/docs/explanations/rendering.html) in napari and
+  [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
+  may eventually improve the subjective performance... but remote data loading
+  will likely always be a limitation here.
 
-## contributions
+## contributing
 
-Contributions are welcome.  Please submit a PR.
+Contributions are welcome!  To get setup with a development environment:
+
+```bash
+# clone this repo:
+git clone https://github.com/tlambert03/napari-omero.git
+# change into the new directory
+cd napari-omero
+# create conda environment
+conda env create -f environment.yml
+# activate the new env
+conda activate napari-omero
+```
+
+To maintain good code quality, this repo uses
+[flake8](https://gitlab.com/pycqa/flake8),
+[mypy](https://github.com/python/mypy), and
+[black](https://github.com/psf/black).  To enforce code quality when you commit
+code, you can install pre-commit
+
+```bash
+# install pre-commit which will run code checks prior to commits
+pre-commit install
+```
 
 The original OMERO data loader and CLI extension was created by [Will
 Moore](https://github.com/will-moore).

@@ -4,5 +4,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - napari
+  - python=3.7
+  - pip
   - omero-py=5.6.2
+  - pip:
+    - .[dev]
