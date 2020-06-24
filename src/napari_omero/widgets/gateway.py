@@ -95,7 +95,9 @@ class QGateWay(QObject):
         else:
             self.worker = None
 
-    def _submit(self, func: Callable, *args, _wait=True, **kwargs) -> WorkerBase:
+    def _submit(
+        self, func: Callable, *args, _wait=True, **kwargs
+    ) -> WorkerBase:
         new_worker = create_worker(func, *args, _start_thread=False, **kwargs)
         new_worker.finished.connect(self._start_next_worker)
 
@@ -127,10 +129,16 @@ class QGateWay(QObject):
                 self.error.emit(e)
         return None
 
-    def create_session(self, host: str, port: str, username: str, password: str):
-        return self._submit(self._create_session, host, port, username, password)
+    def create_session(
+        self, host: str, port: str, username: str, password: str
+    ):
+        return self._submit(
+            self._create_session, host, port, username, password
+        )
 
-    def _create_session(self, host: str, port: str, username: str, password: str):
+    def _create_session(
+        self, host: str, port: str, username: str, password: str
+    ):
         self.status.emit("connecting...")
         try:
             session = self.store.create(

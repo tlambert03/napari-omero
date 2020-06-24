@@ -3,7 +3,7 @@ from qtpy.QtGui import QPixmap, QImage, QIcon
 from qtpy.QtCore import QSize, Qt
 from .gateway import QGateWay
 from .tree_model import OMEROTreeItem
-from typing import Dict
+from typing import Dict, Optional
 
 
 THUMBSIZE = 96
@@ -19,9 +19,9 @@ class ThumbGrid(QListWidget):
         self.loader = None
         self.setStyleSheet("QListView {font-size: 8px; background: black};")
         self.setSpacing(4)
-        self._current_dataset: OMEROTreeItem = None
-        self._current_item: OMEROTreeItem = None
-        self._item_map: Dict[id, QListWidgetItem] = {}
+        self._current_dataset: Optional[OMEROTreeItem] = None
+        self._current_item: Optional[OMEROTreeItem] = None
+        self._item_map: Dict[str, QListWidgetItem] = {}
 
     def set_item(self, item: OMEROTreeItem):
         if item == self._current_item:
@@ -29,12 +29,13 @@ class ThumbGrid(QListWidget):
 
         self._current_item = item
 
+        dataset = None
         if item.isDataset():
             dataset = item
         elif item.isImage():
             dataset = item.parent()
         else:
-            self._current_dataset = dataset = None
+            self._current_dataset = None
 
         if dataset:
             self.set_dataset(dataset)
@@ -61,7 +62,9 @@ class ThumbGrid(QListWidget):
             self.clear()
             self._item_map.clear()
             for img in item.wrapper.listChildren():
-                for byte in conn.getThumbnailSet([img.getId()], THUMBSIZE).values():
+                for byte in conn.getThumbnailSet(
+                    [img.getId()], THUMBSIZE
+                ).values():
                     yield byte, img
 
         return self.gateway._submit(

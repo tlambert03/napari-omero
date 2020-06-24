@@ -99,7 +99,9 @@ class NapariControl(BaseControl):
                 print(f"time to load_omero_image(): {time.time() - n:.4f} s")
 
                 # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console({"conn": self.gateway, "omero_image": img})
+                viewer.update_console(
+                    {"conn": self.gateway, "omero_image": img}
+                )
 
 
 # Register napari_omero as an OMERO CLI plugin
@@ -195,7 +197,9 @@ def save_rois(viewer, image):
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [layer.shape_type for t in range(len(layer.data))]
+                shape_types = [
+                    layer.shape_type for t in range(len(layer.data))
+                ]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
@@ -270,7 +274,16 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (x1, y1, x2, y2, x3, y3, x4, y4)
+                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    x3,
+                    y3,
+                    x4,
+                    y4,
+                )
                 shape.points = rstring(points)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)

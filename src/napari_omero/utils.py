@@ -58,7 +58,8 @@ def lookup_obj(conn: BlitzGateway, iobj: IObject) -> BlitzObjectWrapper:
 
 
 omero_url_pattern = re.compile(
-    r"https?://(?P<host>[^/]+).*/webclient/\?show=(?P<type>[a-z]+)-(?P<id>[0-9]+)"
+    r"https?://(?P<host>[^/]+).*/webclient"
+    r"/\?show=(?P<type>[a-z]+)-(?P<id>[0-9]+)"
 )
 
 

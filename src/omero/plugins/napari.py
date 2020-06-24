@@ -20,4 +20,5 @@
 
 
 from napari_omero.plugins.omero import NapariControl, HELP
-register("napari", NapariControl, HELP)  # noqa
+
+register("napari", NapariControl, HELP)  # type: ignore  # noqa
