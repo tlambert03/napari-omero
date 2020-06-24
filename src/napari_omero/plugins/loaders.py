@@ -85,7 +85,7 @@ def load_omero_channel(
         size_x = image.getPixelSizeX()
         size_z = image.getPixelSizeZ()
         if size_x is not None and size_z is not None:
-            if image.getSizeC() > 1:
+            if image.getSizeT() > 1:
                 scale = [1, size_z / size_x, 1, 1]
             else:
                 scale = [size_z / size_x, 1, 1]
