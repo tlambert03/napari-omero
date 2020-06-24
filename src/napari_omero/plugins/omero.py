@@ -250,7 +250,7 @@ def create_omero_shape(shape_type, data):
     elif shape_type == "path" or shape_type == "polygon":
         shape = PolylineI() if shape_type == "path" else PolygonI()
         # points = "10,20, 50,150, 200,200, 250,75"
-        points = ["%s,%s" % (get_x(d), get_y(d)) for d in data]
+        points = [f"{get_x(d)},{get_y(d)}" for d in data]
         shape.points = rstring(", ".join(points))
     elif shape_type == "rectangle" or shape_type == "ellipse":
         # corners go anti-clockwise starting top-left
@@ -274,16 +274,7 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = "%s,%s, %s,%s, %s,%s, %s,%s" % (
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                    x3,
-                    y3,
-                    x4,
-                    y4,
-                )
+                points = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
                 shape.points = rstring(points)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)
