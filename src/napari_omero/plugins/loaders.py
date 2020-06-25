@@ -159,6 +159,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
     """Get a pyramid of rgb dask arrays, loading tiles from OMERO."""
     size_z = image.getSizeZ()
     size_t = image.getSizeT()
+    size_c = image.getSizeC()
     pixels = image.getPrimaryPixels()
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
 
@@ -167,20 +168,26 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
 
     def get_tile(tile_name):
         """ tile_name is 'level,z,t,x,y,w,h' """
-        print('get_tile', tile_name)
+        print('get_tile rps', tile_name)
         if tile_name in tile_cache:
             print('using cache...')
             return tile_cache[tile_name]
         level, z, t, x, y, w, h = [int(n) for n in tile_name.split(",")]
-        # create a new ImageWrapper (and rendering engine) each time
-        # to avoid sharing re state between processes
-        temp_img = image._conn.getObject('Image', image.id)
-        tile = temp_img.renderJpegRegion(z, t, x, y, w, h, level, compression=1)
-        temp_img._re.close()
-        i = BytesIO(tile)
-        rv = Image.open(i)
-        # i.close()
-        tile_data = np.asarray(rv)
+        pix = image._conn.c.sf.createRawPixelsStore()
+        try:
+            pix.setPixelsId(image.id, False)
+            pix.setResolutionLevel(level)
+            tiles = []
+            for c in range(size_c):
+                tiles.append(pix.getTile(z, c, t, x, y, w, h))
+        finally:
+            pix.close()
+
+        for c, tile in enumerate(tiles):
+            tile = np.frombuffer(tile, dtype=np.uint8)
+            tile = tile.reshape((h, w))
+            tiles[c] = tile
+        tile_data = np.dstack(tiles)
         tile_cache[tile_name] = tile_data
         return tile_data
 
