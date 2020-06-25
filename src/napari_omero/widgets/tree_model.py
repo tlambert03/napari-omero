@@ -6,7 +6,7 @@ from omero.gateway import (
 from qtpy.QtCore import QModelIndex
 from qtpy.QtGui import QStandardItem, QStandardItemModel
 from .gateway import QGateWay
-from typing import Dict
+from typing import Dict, Optional
 
 
 class OMEROTreeItem(QStandardItem):
@@ -15,7 +15,7 @@ class OMEROTreeItem(QStandardItem):
         self.wrapper = wrapper
         self.setData(wrapper)
         # self._has_fetched = False
-        self._childCount = None
+        self._childCount: Optional[int] = None
         if self.hasChildren():
             self.setText(f"{self.wrapper.getName()} ({self.numChildren()})")
         else:
