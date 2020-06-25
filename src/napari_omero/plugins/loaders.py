@@ -59,7 +59,9 @@ def omero_url_reader(path: str) -> List[LayerData]:
 
 
 @timer
-def omero_proxy_reader(path: str, proxy_obj: IObject = None) -> List[LayerData]:
+def omero_proxy_reader(
+    path: str, proxy_obj: IObject = None
+) -> List[LayerData]:
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
@@ -93,7 +95,7 @@ def load_omero_channel(
         size_x = image.getPixelSizeX()
         size_z = image.getPixelSizeZ()
         if size_x is not None and size_z is not None:
-            if image.getSizeC() > 1:
+            if image.getSizeT() > 1:
                 scale = [1, size_z / size_x, 1, 1]
             else:
                 scale = [size_z / size_x, 1, 1]
@@ -130,7 +132,9 @@ def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
 
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
 
-    plane_names = [f"{z},{c_index},{t}" for t in range(size_t) for z in range(size_z)]
+    plane_names = [
+        f"{z},{c_index},{t}" for t in range(size_t) for z in range(size_z)
+    ]
     lazy_arrays = [get_plane(pn) for pn in plane_names]
     dask_arrays = [
         da.from_delayed(delayed_reader, shape=(size_y, size_x), dtype=dtype)
@@ -142,7 +146,9 @@ def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
 
     z_stacks = []
     for t in range(size_t):
-        z_stacks.append(da.stack(dask_arrays[t * size_z : (t + 1) * size_z], axis=0))
+        z_stacks.append(
+            da.stack(dask_arrays[t * size_z : (t + 1) * size_z], axis=0)
+        )
     stack = da.stack(z_stacks, axis=0)
     return stack
 
