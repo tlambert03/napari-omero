@@ -124,7 +124,6 @@ class QGateWay(QObject):
                 session = self.store.attach(host, username, uuid)
                 return self._on_new_session(session)
             except Exception as e:
-                print(e)
                 self.status.emit("Error")
                 self.error.emit(e)
         return None
@@ -141,16 +140,13 @@ class QGateWay(QObject):
     ):
         self.status.emit("connecting...")
         try:
-            session = self.store.create(
-                username,
-                password,
-                {
-                    "omero.host": host,
-                    "omero.port": port,
-                    "omero.user": username,
-                    "omero.timeout": 2000 * 60,
-                },
-            )
+            props = {
+                "omero.host": host,
+                "omero.user": username,
+            }
+            if port:
+                props['omero.port'] = port
+            session = self.store.create(username, password, props)
             return self._on_new_session(session)
         except Exception as e:
             self.status.emit("Error")
