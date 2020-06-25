@@ -71,7 +71,9 @@ class OMEROTreeModel(QStandardItemModel):
             return
 
         for item in projects:
-            for dataset in list(item.wrapper.listChildren()):
+            for dataset in list(self.gateway.conn.getObjects(
+                    "Dataset", opts={'project': item.wrapper.id,
+                                     'order_by': 'obj.name'})):
                 dchild = OMEROTreeItem(dataset)
                 item.appendRow(dchild)
                 self._wrapper_map[dataset.getId()] = self.indexFromItem(dchild)
