@@ -84,7 +84,9 @@ class OMEROTreeModel(QStandardItemModel):
                 yield
                 if not self.gateway.isConnected():
                     return
-                for image in list(dataset.listChildren()):
+                for image in list(self.gateway.conn.getObjects(
+                        "Image", opts={'dataset': dataset.id,
+                                       'order_by': 'obj.name'})):
                     ichild = OMEROTreeItem(image)
                     dchild.appendRow(ichild)
                     self._wrapper_map[image.getId()] = self.indexFromItem(
