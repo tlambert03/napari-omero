@@ -61,7 +61,7 @@ class OMEROWidget(QWidget):
         if not self.thumb_grid.selectedItems():
             return
         wrapper = self.thumb_grid.selectedItems()[0].wrapper
-        index: QModelIndex = self.model._wrapper_map.get(wrapper.getId())
+        index: QModelIndex = self.model._wrapper_map[wrapper.getId()]
         self.tree.selectionModel().select(
             index,
             QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,

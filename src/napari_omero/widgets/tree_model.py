@@ -6,7 +6,7 @@ from omero.gateway import (
 from qtpy.QtCore import QModelIndex
 from qtpy.QtGui import QStandardItem, QStandardItemModel
 from .gateway import QGateWay
-from typing import Dict
+from typing import Dict, Optional
 
 
 class OMEROTreeItem(QStandardItem):
@@ -14,30 +14,48 @@ class OMEROTreeItem(QStandardItem):
         super().__init__()
         self.wrapper = wrapper
         self.setData(wrapper)
-        # self._has_fetched = False
-        self._childCount = None
-        if self.hasChildren():
-            self.setText(f"{self.wrapper.getName()} ({self.numChildren()})")
+        self._has_fetched = False
+        if self.child_type:
+            self.setText(f"{self.wrapper.getName()} ({self.n_children})")
         else:
             self.setText(f"{self.wrapper.getName()}")
 
-    # def canFetchMore(self) -> bool:
-    #     if self._has_fetched or not self.hasChildren():
-    #         return False
-    #     return self.wrapper.countChildren() > 0
+    def canFetchMore(self) -> bool:
+        return not self._has_fetched and self.hasChildren()
 
-    # def fetchChildren(self):
-    #     for child in self.wrapper.listChildren():
-    #         self.appendRow(OMEROTreeItem(child))
-    #     self._has_fetched = True
+    def yieldChildren(self):
+        yield from self.wrapper._conn.getObjects(
+            self.child_type,
+            opts={
+                self.wrapper_type.lower(): self.wrapper.id,
+                'order_by': 'obj.name',
+            },
+        )
 
-    def hasChildren(self):
-        return bool(self.wrapper.CHILD_WRAPPER_CLASS)
+    def hasChildren(self) -> bool:
+        return bool(self.child_type and self.n_children > 0)
 
-    def numChildren(self) -> int:
-        if self._childCount is None:
-            self._childCount = self.wrapper.countChildren()
-        return self._childCount
+    @property
+    def child_type(self) -> Optional[str]:
+        kls = self.wrapper.CHILD_WRAPPER_CLASS or ''
+        kls = kls if isinstance(kls, str) else kls.__name__
+        return kls.lstrip("_").replace("Wrapper", "") if kls else None
+
+    @property
+    def wrapper_type(self) -> str:
+        return self.wrapper.OMERO_CLASS
+
+    @property
+    def parent_type(self) -> Optional[str]:
+        kls = self.wrapper.PARENT_WRAPPER_CLASS or ''
+        kls = kls if isinstance(kls, str) else kls.__name__
+        return kls.lstrip("_").replace("Wrapper", "") if kls else None
+
+    @property
+    def n_children(self) -> int:
+        if not hasattr(self, '_n_children'):
+            self._n_children = self.wrapper.countChildren()
+        return self._n_children
 
     def isDataset(self) -> bool:
         return isinstance(self.wrapper, _DatasetWrapper)
@@ -50,61 +68,43 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
+        root = self.invisibleRootItem()
+        root.appendRow(QStandardItem('loading...'))
         self.gateway.connected.connect(
-            lambda g: self.gateway._submit(self._populate_tree)
+            lambda g: self.gateway._submit(
+                self._get_projects, _connect={'returned': self._add_projects}
+            )
         )
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
-    def _populate_tree(self):
-        if not self.gateway.isConnected():
-            return
+    def _get_projects(self):
+        return self.gateway.getObjects(
+            "Project", opts={'order_by': 'obj.name'}
+        )
 
+    def _add_projects(self, projects):
         root = self.invisibleRootItem()
-        projects = []
-
-        for project in list(self.gateway.conn.getObjects(
-                            "Project", opts={'order_by': 'obj.name'})):
+        root.removeRow(0)
+        for project in projects:
             item = OMEROTreeItem(project)
             root.appendRow(item)
-            projects.append(item)
             self._wrapper_map[project.getId()] = self.indexFromItem(item)
-            yield
 
-        if not self.gateway.isConnected():
-            return
+    def canFetchMore(self, index: QModelIndex) -> bool:
+        item = self.itemFromIndex(index)
+        return bool(item and item.canFetchMore())
 
-        for item in projects:
-            for dataset in list(self.gateway.conn.getObjects(
-                    "Dataset", opts={'project': item.wrapper.id,
-                                     'order_by': 'obj.name'})):
-                dchild = OMEROTreeItem(dataset)
-                item.appendRow(dchild)
-                self._wrapper_map[dataset.getId()] = self.indexFromItem(dchild)
-
-                yield
-                if not self.gateway.isConnected():
-                    return
-                for image in list(self.gateway.conn.getObjects(
-                        "Image", opts={'dataset': dataset.id,
-                                       'order_by': 'obj.name'})):
-                    ichild = OMEROTreeItem(image)
-                    dchild.appendRow(ichild)
-                    self._wrapper_map[image.getId()] = self.indexFromItem(
-                        ichild
-                    )
-                    yield
-
-    # def canFetchMore(self, index: QModelIndex) -> bool:
-    #     item = self.itemFromIndex(index)
-    #     return bool(item and item.canFetchMore())
-
-    # def fetchMore(self, index: QModelIndex) -> None:
-    #     self.itemFromIndex(index).fetchChildren()
+    def fetchMore(self, index: QModelIndex) -> None:
+        item = self.itemFromIndex(index)
+        for c in item.yieldChildren():
+            item.appendRow(OMEROTreeItem(c))
+            self._wrapper_map[c.getId()] = self.indexFromItem(item)
+        item._has_fetched = True
 
     def hasChildren(self, index: QModelIndex) -> bool:
         item = self.itemFromIndex(index)
         if item is not None:
-            return item.hasChildren() and item.numChildren() > 0
+            return item.hasChildren() and item.n_children > 0
         return True
 
     def itemFromIndex(self, index: QModelIndex) -> OMEROTreeItem:

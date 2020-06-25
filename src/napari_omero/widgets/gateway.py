@@ -1,9 +1,9 @@
 import atexit
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Generator
 
 from napari.qt.threading import WorkerBase, create_worker
 from omero.clients import BaseClient
-from omero.gateway import BlitzGateway, PixelsWrapper
+from omero.gateway import BlitzGateway, PixelsWrapper, BlitzObjectWrapper
 import omero.gateway
 from omero.util.sessions import SessionsStore
 from qtpy.QtCore import QObject, Signal
@@ -168,6 +168,13 @@ class QGateWay(QObject):
         self.connected.emit(self.conn)
         self.status.emit("")
         return self.conn
+
+    def getObjects(
+        self, name: str, **kwargs
+    ) -> Generator[BlitzObjectWrapper, None, None]:
+        if not self.isConnected():
+            raise RuntimeError("No connection!")
+        yield from self.conn.getObjects(name, **kwargs)
 
 
 class NonCachedPixelsWrapper(PixelsWrapper):
