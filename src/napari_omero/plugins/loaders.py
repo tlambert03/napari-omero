@@ -1,7 +1,7 @@
 from io import BytesIO
 from math import ceil
 from PIL import Image
-from typing import List
+from typing import List, Dict
 
 import dask.array as da
 import numpy as np
@@ -152,7 +152,7 @@ def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
     stack = da.stack(z_stacks, axis=0)
     return stack
 
-tile_cache = {}
+tile_cache: Dict[str, da.Array] = {}
 
 @timer
 def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
