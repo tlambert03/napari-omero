@@ -15,6 +15,7 @@ class OMEROTreeItem(QStandardItem):
         self.wrapper = wrapper
         self.setData(wrapper)
         # self._has_fetched = False
+        self._childCount = None
         if self.hasChildren():
             self.setText(f"{self.wrapper.getName()} ({self.numChildren()})")
         else:
@@ -34,7 +35,9 @@ class OMEROTreeItem(QStandardItem):
         return bool(self.wrapper.CHILD_WRAPPER_CLASS)
 
     def numChildren(self) -> int:
-        return self.wrapper.countChildren()
+        if self._childCount is None:
+            self._childCount = self.wrapper.countChildren()
+        return self._childCount
 
     def isDataset(self) -> bool:
         return isinstance(self.wrapper, _DatasetWrapper)
