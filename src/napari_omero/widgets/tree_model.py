@@ -58,7 +58,9 @@ class OMEROTreeModel(QStandardItemModel):
 
         root = self.invisibleRootItem()
         projects = []
-        for project in list(self.gateway.conn.listProjects()):
+
+        for project in list(self.gateway.conn.getObjects(
+                            "Project", opts={'order_by': 'obj.name'})):
             item = OMEROTreeItem(project)
             root.appendRow(item)
             projects.append(item)
