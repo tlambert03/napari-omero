@@ -29,7 +29,7 @@ def get_gateway(path: str, host: str = None) -> BlitzGateway:
         if conn:
             return conn
 
-    from .widgets.login import LoginForm
+    from ..widgets.login import LoginForm
 
     form = LoginForm(gateway)
     gateway.connected.connect(form.accept)
