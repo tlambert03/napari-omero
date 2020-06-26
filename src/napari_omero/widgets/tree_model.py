@@ -13,7 +13,6 @@ class OMEROTreeItem(QStandardItem):
     def __init__(self, wrapper: BlitzObjectWrapper):
         super().__init__()
         self.wrapper = wrapper
-        self.setData(wrapper)
         self._has_fetched = False
         if self.child_type:
             self.setText(f"{self.wrapper.getName()} ({self.n_children})")
@@ -68,8 +67,6 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
-        root = self.invisibleRootItem()
-        root.appendRow(QStandardItem('loading...'))
         self.gateway.connected.connect(
             lambda g: self.gateway._submit(
                 self._get_projects, _connect={'returned': self._add_projects}
@@ -78,6 +75,8 @@ class OMEROTreeModel(QStandardItemModel):
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
     def _get_projects(self):
+        root = self.invisibleRootItem()
+        root.appendRow(QStandardItem('loading...'))
         return self.gateway.getObjects(
             "Project", opts={'order_by': 'obj.name'}
         )
@@ -96,9 +95,10 @@ class OMEROTreeModel(QStandardItemModel):
 
     def fetchMore(self, index: QModelIndex) -> None:
         item = self.itemFromIndex(index)
-        for c in item.yieldChildren():
-            item.appendRow(OMEROTreeItem(c))
-            self._wrapper_map[c.getId()] = self.indexFromItem(item)
+        for child in item.yieldChildren():
+            child_item = OMEROTreeItem(child)
+            item.appendRow(child_item)
+            self._wrapper_map[child.getId()] = self.indexFromItem(child_item)
         item._has_fetched = True
 
     def hasChildren(self, index: QModelIndex) -> bool:
