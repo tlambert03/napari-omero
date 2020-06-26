@@ -62,10 +62,12 @@ class OMEROWidget(QWidget):
             return
         wrapper = self.thumb_grid.selectedItems()[0].wrapper
         index: QModelIndex = self.model._wrapper_map.get(wrapper.getId())
-        self.tree.selectionModel().select(
-            index,
-            QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
-        )
+        if index:
+            self.tree.selectionModel().select(
+                index,
+                QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
+            )
+        self.load_image(wrapper)
 
     def _on_tree_selection(
         self, selected: QItemSelection, deselected: QItemSelection
