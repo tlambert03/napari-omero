@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 import dask.array as da
 
@@ -7,7 +7,7 @@ from vispy.color import Colormap
 
 from napari.types import LayerData
 from omero.cli import ProxyStringType
-from omero.gateway import BlitzGateway, ImageWrapper, ChannelWrapper
+from omero.gateway import BlitzGateway, ImageWrapper
 from omero.model import IObject
 
 from ..utils import parse_omero_url, timer, lookup_obj, PIXEL_TYPES
@@ -65,79 +65,68 @@ def omero_proxy_reader(
 
 
 def load_image_wrapper(image: ImageWrapper) -> List[LayerData]:
-    return [
-        load_omero_channel(image, channel, c)
-        for c, channel in enumerate(image.getChannels())
+    data = get_data_lazy(image)
+    meta = get_omero_metadata(image)
+    # contrast limits range ... not accessible from plugin interface
+    # win_min = channel.getWindowMin()
+    # win_max = channel.getWindowMax()
+    return [(data, meta)]
+
+
+def get_omero_metadata(image: ImageWrapper) -> Dict:
+    """Get metadata from OMERO as a Dict to pass to napari."""
+    channels = image.getChannels()
+
+    colors = []
+    for ch in channels:
+        # use current rendering settings from OMERO
+        color = ch.getColor().getRGB()
+        color = [r / 256 for r in color]
+        colors.append(Colormap([[0, 0, 0], color]))
+
+    contrast_limits = [
+        [ch.getWindowStart(), ch.getWindowEnd()] for ch in channels
     ]
 
+    visibles = [ch.isActive() for ch in channels]
+    names = [ch.getLabel() for ch in channels]
 
-def load_omero_channel(
-    image: ImageWrapper, channel: ChannelWrapper, c_index: int
-) -> LayerData:
-    data = get_data_lazy(image, c_index=c_index)
-    color = channel.getColor().getRGB()
-    color = [r / 256 for r in color]
-    cmap = Colormap([[0, 0, 0], color])
     scale = None
-
-    # FIXME: still getting size mismatch sometimes  is there a getNDim()?
     if image.getSizeZ() > 1:
         size_x = image.getPixelSizeX()
         size_z = image.getPixelSizeZ()
         if size_x is not None and size_z is not None:
-            if image.getSizeT() > 1:
-                scale = [1, size_z / size_x, 1, 1]
-            else:
-                scale = [size_z / size_x, 1, 1]
+            scale = [1, size_z / size_x, 1, 1]
 
-    meta = {
-        "blending": "additive",
-        "colormap": ("from_omero", cmap),
-        "scale": scale,
-        "name": channel.getLabel(),
-        "visible": channel.isActive(),
-        "contrast_limits": [channel.getWindowStart(), channel.getWindowEnd()],
+    return {
+        'channel_axis': 1,
+        'colormap': colors,
+        'contrast_limits': contrast_limits,
+        'name': names,
+        'visible': visibles,
+        'scale': scale,
     }
-    # contrast limits range ... not accessible from plugin interface
-    # win_min = channel.getWindowMin()
-    # win_max = channel.getWindowMax()
-    return (data, meta)
 
 
 @timer
-def get_data_lazy(image: ImageWrapper, c_index: int = 0) -> da.Array:
-    """Get n-dimensional dask array, with delayed reading from OMERO image."""
-    size_z = image.getSizeZ()
-    size_t = image.getSizeT()
-    size_x = image.getSizeX()
-    size_y = image.getSizeY()
+def get_data_lazy(image: ImageWrapper) -> da.Array:
+    """Get 5D dask array, with delayed reading from OMERO image."""
+    nt, nc, nz, ny, nx = [getattr(image, f'getSize{x}')() for x in 'TCZYX']
     pixels = image.getPrimaryPixels()
-
-    @delayed
-    @timer
-    def get_plane(plane_name):
-        z, c, t = [int(n) for n in plane_name.split(",")]
-        p = pixels.getPlane(z, c, t)
-        return p
-
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
+    get_plane = delayed(timer(lambda idx: pixels.getPlane(*idx)))
 
-    plane_names = [
-        f"{z},{c_index},{t}" for t in range(size_t) for z in range(size_z)
-    ]
-    lazy_arrays = [get_plane(pn) for pn in plane_names]
-    dask_arrays = [
-        da.from_delayed(delayed_reader, shape=(size_y, size_x), dtype=dtype)
-        for delayed_reader in lazy_arrays
-    ]
-    # Stack into one large dask.array
-    if size_z == 1 or size_t == 1:
-        return da.stack(dask_arrays, axis=0)
+    def get_lazy_plane(zct):
+        return da.from_delayed(get_plane(zct), shape=(ny, nx), dtype=dtype)
 
-    z_stacks = []
-    for t in range(size_t):
-        z_stacks.append(
-            da.stack(dask_arrays[t * size_z : (t + 1) * size_z], axis=0)
-        )
-    stack = da.stack(z_stacks, axis=0)
-    return stack
+    # 5D stack: TCZXY
+    t_stacks = []
+    for t in range(nt):
+        c_stacks = []
+        for c in range(nc):
+            z_stack = []
+            for z in range(nz):
+                z_stack.append(get_lazy_plane((z, c, t)))
+            c_stacks.append(da.stack(z_stack))
+        t_stacks.append(da.stack(c_stacks))
+    return da.stack(t_stacks)
