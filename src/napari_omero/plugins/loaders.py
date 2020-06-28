@@ -7,7 +7,7 @@ from vispy.color import Colormap
 
 from napari.types import LayerData
 from omero.cli import ProxyStringType
-from omero.gateway import BlitzGateway, ImageWrapper, ChannelWrapper
+from omero.gateway import BlitzGateway, ImageWrapper
 from omero.model import IObject
 
 from ..utils import parse_omero_url, timer, lookup_obj, PIXEL_TYPES
