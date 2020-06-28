@@ -92,6 +92,8 @@ def get_omero_metadata(image: ImageWrapper) -> Dict:
     names = [ch.getLabel() for ch in channels]
 
     scale = None
+    # Setting z-scale causes issues with Z-slider.
+    # See https://github.com/tlambert03/napari-omero/pull/15
     # if image.getSizeZ() > 1:
     #     size_x = image.getPixelSizeX()
     #     size_z = image.getPixelSizeZ()
