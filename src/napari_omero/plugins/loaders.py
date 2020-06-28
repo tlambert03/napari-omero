@@ -111,37 +111,22 @@ def get_omero_metadata(image: ImageWrapper) -> Dict:
 @timer
 def get_data_lazy(image: ImageWrapper) -> da.Array:
     """Get 5D dask array, with delayed reading from OMERO image."""
-    size_z = image.getSizeZ()
-    size_t = image.getSizeT()
-    size_x = image.getSizeX()
-    size_y = image.getSizeY()
-    size_c = image.getSizeC()
+    nt, nc, nz, ny, nx = [getattr(image, f'getSize{x}')() for x in 'TCZYX']
     pixels = image.getPrimaryPixels()
-
-    @delayed
-    @timer
-    def get_plane(plane_name):
-        z, c, t = [int(n) for n in plane_name.split(",")]
-        p = pixels.getPlane(z, c, t)
-        return p
-
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
+    get_plane = delayed(timer(lambda idx: pixels.getPlane(*idx)))
 
-    def get_lazy_plane(z, c, t):
-        plane_name = "%s,%s,%s" % (z, c, t)
-        return da.from_delayed(
-            get_plane(plane_name), shape=(size_y, size_x), dtype=dtype
-        )
+    def get_lazy_plane(zct):
+        return da.from_delayed(get_plane(zct), shape=(ny, nx), dtype=dtype)
 
     # 5D stack: TCZXY
     t_stacks = []
-    for t in range(size_t):
+    for t in range(nt):
         c_stacks = []
-        for c in range(size_c):
+        for c in range(nc):
             z_stack = []
-            for z in range(size_z):
-                lazy_plane = get_lazy_plane(z, c, t)
-                z_stack.append(lazy_plane)
+            for z in range(nz):
+                z_stack.append(get_lazy_plane((z, c, t)))
             c_stacks.append(da.stack(z_stack))
         t_stacks.append(da.stack(c_stacks))
     return da.stack(t_stacks)
