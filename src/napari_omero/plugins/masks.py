@@ -1,10 +1,7 @@
 import numpy as np
-import math
-import struct
 from random import randint
 
-from omero.model import MaskI, RoiI
-from omero.rtypes import rint, rdouble
+from omero.model import RoiI
 from omero_rois import mask_from_binary_image
 
 
