@@ -1,12 +1,10 @@
 import numpy as np
 import math
 import struct
-import zarr
 from random import randint
 
 from omero.model import MaskI, RoiI
 from omero.rtypes import rint, rdouble
-from omero.gateway import BlitzGateway
 
 
 def numpy_to_bytearray(numpy_mask):
