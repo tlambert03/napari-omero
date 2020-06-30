@@ -28,9 +28,6 @@ def save_labels(masks_4d, image):
     Shape Mask created for each Z/T plane of
     the the mask.
     """
-    print('masks_4d.shape', masks_4d.shape)
-    print('min, max', masks_4d.min(), masks_4d.max())
-
     # for each label value, check if we have any masks
     for v in range(1, masks_4d.max() + 1):
         hits = masks_4d.flatten() == v
@@ -39,7 +36,6 @@ def save_labels(masks_4d, image):
 
 
 def save_label(bool_4d, image):
-
     size_t = bool_4d.shape[0]
     size_z = bool_4d.shape[1]
     # Create an ROI with a shape for each Z/T that has some mask
