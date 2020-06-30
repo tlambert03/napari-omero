@@ -62,6 +62,10 @@ omero_url_pattern = re.compile(
     r"/\?show=(?P<type>[a-z]+)-(?P<id>[0-9]+)"
 )
 
+omero_object_pattern = re.compile(
+    r"(?P<type>(Image|Dataset|Project)):(?P<id>[0-9]+)"
+)
+
 
 def parse_omero_url(url: str) -> Optional[Dict[str, str]]:
     match = omero_url_pattern.search(url)
@@ -69,6 +73,10 @@ def parse_omero_url(url: str) -> Optional[Dict[str, str]]:
 
 
 def get_proxy_obj(path: str) -> Optional[IObject]:
+    """If path ends with e.g. Image:ID return proxy obj"""
+    match = omero_object_pattern.search(path)
+    if match is None:
+        return None
     for proxy_type in PROXIES:
         try:
             return proxy_type(path)
