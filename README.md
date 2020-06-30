@@ -82,7 +82,7 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.6 or 3.7 due to `omero-py` Ice dependencies.
+Requires python 3.6, 3.7 or 3.8 due to `omero-py` Ice dependencies.
 It's easiest to install `omero-py` from conda, so the recommended install
 procedure is to first create a new conda environment (here called "`omero`")
 with `omero-py` installed from the `ome` channel, and then use `pip` to
