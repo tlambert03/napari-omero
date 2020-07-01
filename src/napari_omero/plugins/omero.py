@@ -208,7 +208,7 @@ def save_rois(viewer, image):
                     print("Created ROI: %s" % roi.id.val)
         elif type(layer) == labels_layer:
             print("Saving Labels...")
-            save_labels(layer.data, image)
+            save_labels(layer, image)
 
 
 def get_x(coordinate):

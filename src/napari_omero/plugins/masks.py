@@ -1,6 +1,5 @@
 from typing import List
 import numpy as np
-from random import randint
 
 from omero.gateway import ImageWrapper
 from omero.model import RoiI
@@ -18,7 +17,7 @@ def create_roi(image: ImageWrapper, shapes) -> RoiI:
     return updateService.saveAndReturnObject(roi)
 
 
-def save_labels(masks_4d: np.ndarray, image: ImageWrapper) -> List[RoiI]:
+def save_labels(layer, image: ImageWrapper) -> List[RoiI]:
     """
     Saves masks from a 5D image (no C dimension)
 
@@ -28,15 +27,19 @@ def save_labels(masks_4d: np.ndarray, image: ImageWrapper) -> List[RoiI]:
     the the mask.
     """
     # for each label value, check if we have any masks
+    masks_4d = layer.data
     rois = []
     for v in range(1, masks_4d.max() + 1):
         hits = masks_4d.flatten() == v
         if np.any(hits):
-            rois.append(save_label(masks_4d == v, image))
+            rgba = layer.get_color(v)
+            rgba = [round(r * 255) for r in rgba]
+            rgba[3] = layer.opacity * 256
+            rois.append(save_label(masks_4d == v, image, rgba))
     return rois
 
 
-def save_label(bool_4d: np.ndarray, image: ImageWrapper) -> RoiI:
+def save_label(bool_4d: np.ndarray, image: ImageWrapper, rgba) -> RoiI:
     """Turns a boolean array of shape (t, z, y, x) into OMERO Roi"""
     size_t = bool_4d.shape[0]
     size_z = bool_4d.shape[1]
@@ -46,7 +49,6 @@ def save_label(bool_4d: np.ndarray, image: ImageWrapper) -> RoiI:
         for t in range(0, size_t):
             masks_2d = bool_4d[t][z]
             if np.any(masks_2d.flatten()):
-                rgba = [randint(0, 255), randint(0, 255), randint(0, 255), 255]
                 mask = mask_from_binary_image(masks_2d, rgba=rgba, z=z, t=t)
                 mask_shapes.append(mask)
 
