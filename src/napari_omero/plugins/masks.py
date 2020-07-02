@@ -24,7 +24,7 @@ def save_labels(layer, image: ImageWrapper) -> List[RoiI]:
     Each non-zero value in the labels data
     is used to create an ROI in OMERO with a
     Shape Mask created for each Z/T plane of
-    the the mask.
+    the mask.
     """
     # for each label value, check if we have any masks
     masks_4d = layer.data
