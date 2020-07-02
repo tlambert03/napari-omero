@@ -24,6 +24,7 @@ from omero.model import (
 )
 from omero.rtypes import rdouble, rint, rstring
 
+from .masks import save_labels
 from ..utils import lookup_obj, obj_to_proxy_string
 
 HELP = "Connect OMERO to the napari image viewer"
@@ -206,7 +207,8 @@ def save_rois(viewer, image):
                     roi = create_roi(conn, image.id, [shape])
                     print("Created ROI: %s" % roi.id.val)
         elif type(layer) == labels_layer:
-            print("Saving Labels not supported")
+            print("Saving Labels...")
+            save_labels(layer, image)
 
 
 def get_x(coordinate):

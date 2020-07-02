@@ -7,5 +7,6 @@ dependencies:
   - python=3.7
   - pip
   - omero-py=5.6.2
+  - omero-rois
   - pip:
     - .[dev]
