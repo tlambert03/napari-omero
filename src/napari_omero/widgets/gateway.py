@@ -1,7 +1,6 @@
 import atexit
-from typing import Callable, Optional, Tuple, Generator
+from typing import Callable, Optional, TYPE_CHECKING, Tuple, Generator
 
-from napari.qt.threading import WorkerBase, create_worker
 from omero.clients import BaseClient
 from omero.gateway import BlitzGateway, PixelsWrapper, BlitzObjectWrapper
 import omero.gateway
@@ -9,6 +8,10 @@ from omero.util.sessions import SessionsStore
 from qtpy.QtCore import QObject, Signal
 
 SessionStats = Tuple[BaseClient, str, int, int]
+
+
+if TYPE_CHECKING:
+    from napari.qt.threading import WorkerBase
 
 
 class QGateWay(QObject):
@@ -28,8 +31,8 @@ class QGateWay(QObject):
         self.store = SessionsStore()
         self.destroyed.connect(self.close)
         atexit.register(self.close)
-        self.worker: Optional[WorkerBase] = None
-        self._next_worker: Optional[WorkerBase] = None
+        self.worker: Optional['WorkerBase'] = None
+        self._next_worker: Optional['WorkerBase'] = None
 
     @property
     def conn(self):
@@ -97,7 +100,9 @@ class QGateWay(QObject):
 
     def _submit(
         self, func: Callable, *args, _wait=True, **kwargs
-    ) -> WorkerBase:
+    ) -> 'WorkerBase':
+        from napari.qt.threading import create_worker
+
         new_worker = create_worker(func, *args, _start_thread=False, **kwargs)
         new_worker.finished.connect(self._start_next_worker)
 
