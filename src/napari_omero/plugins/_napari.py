@@ -19,3 +19,10 @@ def napari_get_reader(path: Union[str, List[str]]) -> Optional[Callable]:
             if proxy_obj:
                 return partial(omero_proxy_reader, proxy_obj=proxy_obj)
     return None
+
+
+@napari_hook_implementation
+def napari_experimental_provide_dock_widget():
+    from ..widgets import OMEROWidget
+
+    return (OMEROWidget, {'name': 'browser'})

@@ -10,6 +10,6 @@ build-backend = "setuptools.build_meta"
 write_to = "src/napari_omero/_version.py"
 
 [tool.black]
-target-version = ['py36', 'py37']
+target-version = ['py37', 'py38']
 skip-string-normalization = true
 line-length = 79
