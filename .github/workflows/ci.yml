@@ -29,6 +29,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
+      - name: napari hub Preview Page Builder
+        uses: chanzuckerberg/napari-hub-preview-action@v0.1.4
+        with:
+          hub-ref: main
+
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
