@@ -53,9 +53,9 @@ class OMEROWidget(QWidget):
 
     @property
     def viewer(self):
-        if hasattr(self.parent(), "qt_viewer"):
-            return self.parent().qt_viewer.viewer
-        return None
+        from napari.utils._magicgui import find_viewer_ancestor
+
+        return find_viewer_ancestor(self)
 
     def _on_thumbnail_selected(self):
         if not self.thumb_grid.selectedItems():
@@ -85,4 +85,4 @@ class OMEROWidget(QWidget):
 
         type_ = wrapper.__class__.__name__[1:-7]
         id_ = wrapper.getId()
-        self.viewer.open(f"{type_}:{id_}", plugin="omero")
+        self.viewer.open(f"omero://{type_}:{id_}", plugin="omero")
