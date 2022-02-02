@@ -31,28 +31,21 @@ To launch napari with the OMERO browser added, [install](#installation) this
 package and run:
 
 ```bash
-napari_omero
+napari-omero
 ```
 
 The OMERO browser widget can also be manually added to the napari viewer:
 
 ```python
 import napari
-from napari_omero import OMEROWidget
 
 viewer = napari.Viewer()
-viewer.window.add_dock_widget(OMEROWidget())
+viewer.window.add_plugin_dock_widget('napari-omero')
 
 napari.run()
 ```
 
 ### as a napari plugin
-
-To start napari with an OMERO browser:
-
-```bash
-napari --with napari-omero
-```
 
 This package provides a napari reader plugin that accepts OMERO resources as
 "proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
@@ -62,7 +55,7 @@ URLS](https://help.openmicroscopy.org/urls-to-data.html).
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("omero://Image:1", plugin="napari-omero")
+viewer.open("omero://Image:1")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -117,6 +110,7 @@ pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
   [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
   may eventually improve the subjective performance... but remote data loading
   will likely always be a limitation here.
+  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`.
 
 ## contributing
 
@@ -131,6 +125,9 @@ cd napari-omero
 conda env create -f environment.yml
 # activate the new env
 conda activate napari-omero
+
+# install in editable mode
+pip install -e .
 ```
 
 To maintain good code quality, this repo uses
