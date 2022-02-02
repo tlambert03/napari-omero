@@ -40,22 +40,29 @@ The OMERO browser widget can also be manually added to the napari viewer:
 import napari
 from napari_omero import OMEROWidget
 
-with napari.gui_qt():
-    viewer = napari.Viewer()
-    viewer.window.add_dock_widget(OMEROWidget(), area="right")
+viewer = napari.Viewer()
+viewer.window.add_dock_widget(OMEROWidget())
+
+napari.run()
 ```
 
 ### as a napari plugin
 
+To start napari with an OMERO browser:
+
+```bash
+napari --with napari-omero
+```
+
 This package provides a napari reader plugin that accepts OMERO resources as
-"proxy strings" (e.g. `Image:<ID>`) or as [OMERO webclient
+"proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("Image:1", plugin="omero")
+viewer.open("omero://Image:1", plugin="napari-omero")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -64,7 +71,7 @@ viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
 these will also work on the napari command line interface, e.g.:
 
 ```bash
-napari Image:1
+napari omero://Image:1
 # or
 napari http://yourdomain.example.org/omero/webclient/?show=image-314
 ```
@@ -90,9 +97,9 @@ with `omero-py` installed from the `ome` channel, and then use `pip` to
 install `napari-omero` (until we have a conda package available).
 
 ```sh
-conda create -n omero -c ome python=3.7 omero-py
+conda create -n omero -c ome python=3.9 omero-py
 conda activate omero
-pip install napari-omero
+pip install napari-omero[all]
 ```
 
 ## issues

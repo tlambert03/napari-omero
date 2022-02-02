@@ -43,7 +43,6 @@ def gateway_required(func):
     def _wrapper(self, *args, **kwargs):
         self.client = self.ctx.conn(*args)
         self.gateway = BlitzGateway(client_obj=self.client)
-        print(self.gateway)
         try:
             return func(self, *args, **kwargs)
         finally:
@@ -94,7 +93,9 @@ class NapariControl(BaseControl):
                 add_buttons(viewer, img)
 
                 n = time.time()
-                viewer.open(obj_to_proxy_string(args.object), plugin="omero")
+                viewer.open(
+                    obj_to_proxy_string(args.object), plugin="napari-omero"
+                )
                 set_dims_defaults(viewer, img)
                 set_dims_labels(viewer, img)
                 print(f"time to load_omero_image(): {time.time() - n:.4f} s")
@@ -143,7 +144,6 @@ def get_data(img, c=0):
     for t in range(size_t):
         z_stack = []
         for z in range(size_z):
-            print("plane c:%s, t:%s, z:%s" % (c, t, z))
             z_stack.append(next(plane_gen))
         t_stacks.append(numpy.array(z_stack))
     return numpy.array(t_stacks)
