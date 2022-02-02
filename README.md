@@ -99,7 +99,7 @@ install `napari-omero` (until we have a conda package available).
 ```sh
 conda create -n omero -c ome python=3.9 omero-py
 conda activate omero
-pip install napari-omero[all]
+pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
 ```
 
 ## issues
