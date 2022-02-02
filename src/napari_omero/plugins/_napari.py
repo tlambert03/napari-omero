@@ -14,10 +14,9 @@ def napari_get_reader(path: Union[str, List[str]]) -> Optional[Callable]:
     if isinstance(path, str):
         if parse_omero_url(path):
             return omero_url_reader
-        else:
-            proxy_obj = get_proxy_obj(os.path.basename(path))
-            if proxy_obj:
-                return partial(omero_proxy_reader, proxy_obj=proxy_obj)
+        proxy_obj = get_proxy_obj(os.path.basename(path))
+        if proxy_obj:
+            return partial(omero_proxy_reader, proxy_obj=proxy_obj)
     return None
 
 
