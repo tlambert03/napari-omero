@@ -31,7 +31,7 @@ To launch napari with the OMERO browser added, [install](#installation) this
 package and run:
 
 ```bash
-napari_omero
+napari-omero
 ```
 
 The OMERO browser widget can also be manually added to the napari viewer:
