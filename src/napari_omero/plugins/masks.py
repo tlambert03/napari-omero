@@ -1,6 +1,6 @@
 from typing import List
-import numpy as np
 
+import numpy as np
 from omero.gateway import ImageWrapper
 from omero.model import RoiI
 from omero_rois import mask_from_binary_image
@@ -52,5 +52,4 @@ def save_label(bool_4d: np.ndarray, image: ImageWrapper, rgba) -> RoiI:
                 mask = mask_from_binary_image(masks_2d, rgba=rgba, z=z, t=t)
                 mask_shapes.append(mask)
 
-    print(f'Creating ROI with {len(mask_shapes)} shapes')
     return create_roi(image, mask_shapes)

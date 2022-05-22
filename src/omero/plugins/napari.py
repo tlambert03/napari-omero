@@ -19,6 +19,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from napari_omero.plugins.omero import NapariControl, HELP
+from napari_omero.plugins.omero import HELP, NapariControl
 
 register("napari", NapariControl, HELP)  # type: ignore  # noqa

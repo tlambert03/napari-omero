@@ -38,24 +38,24 @@ The OMERO browser widget can also be manually added to the napari viewer:
 
 ```python
 import napari
-from napari_omero import OMEROWidget
 
-with napari.gui_qt():
-    viewer = napari.Viewer()
-    viewer.window.add_dock_widget(OMEROWidget(), area="right")
+viewer = napari.Viewer()
+viewer.window.add_plugin_dock_widget('napari-omero')
+
+napari.run()
 ```
 
 ### as a napari plugin
 
 This package provides a napari reader plugin that accepts OMERO resources as
-"proxy strings" (e.g. `Image:<ID>`) or as [OMERO webclient
+"proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("Image:1", plugin="omero")
+viewer.open("omero://Image:1")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -64,7 +64,7 @@ viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
 these will also work on the napari command line interface, e.g.:
 
 ```bash
-napari Image:1
+napari omero://Image:1
 # or
 napari http://yourdomain.example.org/omero/webclient/?show=image-314
 ```
@@ -82,17 +82,26 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.7 - 3.9.
+Requires python 3.7 - 3.10.
 
-It's easiest to install `omero-py` from conda, so the recommended install
-procedure is to first create a new conda environment (here called "`omero`")
-with `omero-py` installed from the `ome` channel, and then use `pip` to
-install `napari-omero` (until we have a conda package available).
+### from conda
+
+It's easiest to install `omero-py` from conda, so the recommended procedure
+is to install everything from conda, using the `conda-forge` channel
+
+```python
+conda install -c conda-forge napari-omero
+```
+
+### from pip
+
+`napari-omero` itself can be installed from pip, but you will still need
+`omero-py`
 
 ```sh
-conda create -n omero -c ome python=3.7 omero-py
+conda create -n omero -c conda-forge python=3.9 omero-py
 conda activate omero
-pip install napari-omero
+pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
 ```
 
 ## issues
@@ -110,6 +119,7 @@ pip install napari-omero
   [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
   may eventually improve the subjective performance... but remote data loading
   will likely always be a limitation here.
+  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`.
 
 ## contributing
 
@@ -124,6 +134,9 @@ cd napari-omero
 conda env create -f environment.yml
 # activate the new env
 conda activate napari-omero
+
+# install in editable mode
+pip install -e .
 ```
 
 To maintain good code quality, this repo uses

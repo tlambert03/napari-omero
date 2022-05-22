@@ -1,9 +1,9 @@
 import atexit
-from typing import Callable, Optional, TYPE_CHECKING, Tuple, Generator
+from typing import TYPE_CHECKING, Callable, Generator, Optional, Tuple
 
-from omero.clients import BaseClient
-from omero.gateway import BlitzGateway, PixelsWrapper, BlitzObjectWrapper
 import omero.gateway
+from omero.clients import BaseClient
+from omero.gateway import BlitzGateway, BlitzObjectWrapper, PixelsWrapper
 from omero.util.sessions import SessionsStore
 from qtpy.QtCore import QObject, Signal
 

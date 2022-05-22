@@ -7,9 +7,10 @@ from qtpy.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QWidget,
     QVBoxLayout,
+    QWidget,
 )
+
 from .gateway import QGateWay
 
 

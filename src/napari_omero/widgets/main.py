@@ -1,10 +1,10 @@
 from omero.gateway import BlitzObjectWrapper
 from qtpy.QtCore import (
-    QModelIndex,
-    QItemSelectionModel,
-    QItemSelection,
-    Qt,
     QCoreApplication,
+    QItemSelection,
+    QItemSelectionModel,
+    QModelIndex,
+    Qt,
 )
 from qtpy.QtWidgets import QLabel, QSplitter, QTreeView, QVBoxLayout, QWidget
 
@@ -85,4 +85,4 @@ class OMEROWidget(QWidget):
 
         type_ = wrapper.__class__.__name__[1:-7]
         id_ = wrapper.getId()
-        self.viewer.open(f"omero://{type_}:{id_}", plugin="omero")
+        self.viewer.open(f"omero://{type_}:{id_}", plugin="napari-omero")

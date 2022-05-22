@@ -1,10 +1,11 @@
-from qtpy.QtWidgets import QListWidget, QListWidgetItem
-from qtpy.QtGui import QPixmap, QImage, QIcon
-from qtpy.QtCore import QSize, Qt
-from .gateway import QGateWay
-from .tree_model import OMEROTreeItem
 from typing import Dict, Optional
 
+from qtpy.QtCore import QSize, Qt
+from qtpy.QtGui import QIcon, QImage, QPixmap
+from qtpy.QtWidgets import QListWidget, QListWidgetItem
+
+from .gateway import QGateWay
+from .tree_model import OMEROTreeItem
 
 THUMBSIZE = 96
 
