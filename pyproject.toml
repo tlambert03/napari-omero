@@ -14,4 +14,10 @@ line-length = 79
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
-filterwarnings = ["once::Warning"]
+filterwarnings = [
+    "once::Warning",
+    "ignore:distutils Version classes are deprecated:",
+    "ignore:the imp module is deprecated in:",
+    "ignore:'U' mode is deprecated",
+    "ignore:Please import PackageMetadata from 'npe2'"
+]
