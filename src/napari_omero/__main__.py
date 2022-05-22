@@ -1,6 +1,6 @@
 def main():
-    from qtpy.QtCore import Qt
     import napari
+    from qtpy.QtCore import Qt
 
     viewer = napari.Viewer()
     dw, _ = viewer.window.add_plugin_dock_widget(

@@ -1,10 +1,10 @@
 from omero.gateway import BlitzObjectWrapper
 from qtpy.QtCore import (
-    QModelIndex,
-    QItemSelectionModel,
-    QItemSelection,
-    Qt,
     QCoreApplication,
+    QItemSelection,
+    QItemSelectionModel,
+    QModelIndex,
+    Qt,
 )
 from qtpy.QtWidgets import QLabel, QSplitter, QTreeView, QVBoxLayout, QWidget
 

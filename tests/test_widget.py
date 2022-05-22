@@ -1,5 +1,6 @@
-from napari_omero import OMEROWidget
 from unittest.mock import patch
+
+from napari_omero import OMEROWidget
 
 
 def test_widget(make_napari_viewer):

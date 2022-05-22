@@ -2,10 +2,8 @@ import sys
 import time
 from functools import wraps
 
-import numpy
-from qtpy.QtWidgets import QPushButton
-
 import napari
+import numpy
 import omero.clients  # noqa
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
@@ -23,9 +21,10 @@ from omero.model import (
     RoiI,
 )
 from omero.rtypes import rdouble, rint, rstring
+from qtpy.QtWidgets import QPushButton
 
-from .masks import save_labels
 from ..utils import lookup_obj, obj_to_proxy_string
+from .masks import save_labels
 
 HELP = "Connect OMERO to the napari image viewer"
 

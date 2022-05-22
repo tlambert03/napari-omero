@@ -1,6 +1,6 @@
 from typing import List
-import numpy as np
 
+import numpy as np
 from omero.gateway import ImageWrapper
 from omero.model import RoiI
 from omero_rois import mask_from_binary_image

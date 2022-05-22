@@ -1,12 +1,10 @@
-from omero.gateway import (
-    BlitzObjectWrapper,
-    _DatasetWrapper,
-    _ImageWrapper,
-)
+from typing import Dict, Optional
+
+from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
 from qtpy.QtCore import QModelIndex
 from qtpy.QtGui import QStandardItem, QStandardItemModel
+
 from .gateway import QGateWay
-from typing import Dict, Optional
 
 
 class OMEROTreeItem(QStandardItem):
