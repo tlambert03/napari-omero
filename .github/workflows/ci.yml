@@ -54,10 +54,7 @@ jobs:
           python -m pip install --upgrade setuptools tox tox-conda tox-gh-actions
 
       - name: Test with tox
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          shell: bash -l {0}
-          run: python -m tox
+        run: tox
         env:
           PLATFORM: ${{ matrix.platform }}
           PYTHON: ${{ matrix.python-version }}
