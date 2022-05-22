@@ -82,15 +82,24 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.7 - 3.9.
+Requires python 3.7 - 3.10.
 
-It's easiest to install `omero-py` from conda, so the recommended install
-procedure is to first create a new conda environment (here called "`omero`")
-with `omero-py` installed from the `ome` channel, and then use `pip` to
-install `napari-omero` (until we have a conda package available).
+### from conda
+
+It's easiest to install `omero-py` from conda, so the recommended procedure
+is to install everything from conda, using the `conda-forge` channel
+
+```python
+conda install -c conda-forge napari-omero
+```
+
+### from pip
+
+`napari-omero` itself can be installed from pip, but you will still need
+`omero-py`
 
 ```sh
-conda create -n omero -c ome python=3.9 omero-py
+conda create -n omero -c conda-forge python=3.9 omero-py
 conda activate omero
 pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
 ```
