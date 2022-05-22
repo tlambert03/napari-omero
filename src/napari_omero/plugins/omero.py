@@ -1,5 +1,4 @@
 import sys
-import time
 from functools import wraps
 
 import napari
@@ -82,34 +81,24 @@ class NapariControl(BaseControl):
             try:
                 img = lookup_obj(self.gateway, args.object)
             except NameError:
-                self.ctx.die(110, "No such %s: %s" % (type, args.object.id))
+                self.ctx.die(110, f"No such {type}: {args.object.id}")
 
-            self.ctx.out("View image: %s" % img.name)
+            self.ctx.out(f"View image: {img.name}")
 
-            with napari.gui_qt():
-                viewer = napari.Viewer()
+            viewer = napari.Viewer()
 
-                add_buttons(viewer, img)
+            add_buttons(viewer, img)
 
-                n = time.time()
-                viewer.open(
-                    obj_to_proxy_string(args.object), plugin="napari-omero"
-                )
-                set_dims_defaults(viewer, img)
-                set_dims_labels(viewer, img)
-                print(f"time to load_omero_image(): {time.time() - n:.4f} s")
+            viewer.open(
+                f'omero://{obj_to_proxy_string(args.object)}',
+                plugin="napari-omero",
+            )
+            set_dims_defaults(viewer, img)
+            set_dims_labels(viewer, img)
 
-                # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console(
-                    {"conn": self.gateway, "omero_image": img}
-                )
-
-
-# Register napari_omero as an OMERO CLI plugin
-if __name__ == "__main__":
-    cli = CLI()
-    cli.register("napari", NapariControl, HELP)
-    cli.invoke(sys.argv[1:])
+            # add 'conn' and 'omero_image' to the viewer console
+            viewer.update_console({"conn": self.gateway, "omero_image": img})
+            napari.run()
 
 
 def add_buttons(viewer, img):
@@ -140,10 +129,8 @@ def get_data(img, c=0):
     plane_gen = pixels.getPlanes(zct_list)
 
     t_stacks = []
-    for t in range(size_t):
-        z_stack = []
-        for z in range(size_z):
-            z_stack.append(next(plane_gen))
+    for _ in range(size_t):
+        z_stack = [next(plane_gen) for _ in range(size_z)]
         t_stacks.append(numpy.array(z_stack))
     return numpy.array(t_stacks)
 
@@ -191,20 +178,20 @@ def save_rois(viewer, image):
             for p in layer.data:
                 point = create_omero_point(p)
                 roi = create_roi(conn, image.id, [point])
-                print("Created ROI: %s" % roi.id.val)
+                print(f"Created ROI: {roi.id.val}")
         elif type(layer) == shapes_layer:
             if len(layer.data) == 0 or len(layer.shape_type) == 0:
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
                 shape_types = [
-                    layer.shape_type for t in range(len(layer.data))
+                    layer.shape_type for _ in range(len(layer.data))
                 ]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
-                    print("Created ROI: %s" % roi.id.val)
+                    print(f"Created ROI: {roi.id.val}")
         elif type(layer) == labels_layer:
             print("Saving Labels...")
             save_labels(layer, image)
@@ -248,12 +235,12 @@ def create_omero_shape(shape_type, data):
         shape.y1 = rdouble(get_y(data[0]))
         shape.x2 = rdouble(get_x(data[1]))
         shape.y2 = rdouble(get_y(data[1]))
-    elif shape_type == "path" or shape_type == "polygon":
+    elif shape_type in ["path", "polygon"]:
         shape = PolylineI() if shape_type == "path" else PolygonI()
         # points = "10,20, 50,150, 200,200, 250,75"
         points = [f"{get_x(d)},{get_y(d)}" for d in data]
         shape.points = rstring(", ".join(points))
-    elif shape_type == "rectangle" or shape_type == "ellipse":
+    elif shape_type in ["rectangle", "ellipse"]:
         # corners go anti-clockwise starting top-left
         x1 = get_x(data[0])
         x2 = get_x(data[1])
@@ -325,3 +312,10 @@ class NonCachedPixelsWrapper(PixelsWrapper):
 omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
 # Update the BlitzGateway to use our NonCachedPixelsWrapper
 omero.gateway.refreshWrappers()
+
+
+if __name__ == "__main__":
+    # Register napari_omero as an OMERO CLI plugin
+    cli = CLI()
+    cli.register("napari", NapariControl, HELP)
+    cli.invoke(sys.argv[1:])
