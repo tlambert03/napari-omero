@@ -1,9 +1,5 @@
 [build-system]
-requires = [
-  "setuptools >= 42",
-  "wheel",
-  "setuptools_scm[toml]>=3.4"
-]
+requires = ["setuptools >= 42", "wheel", "setuptools_scm[toml]>=3.4"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
@@ -13,3 +9,9 @@ write_to = "src/napari_omero/_version.py"
 target-version = ['py37', 'py38']
 skip-string-normalization = true
 line-length = 79
+
+# pyproject.toml
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+filterwarnings = ["once::Warning"]
