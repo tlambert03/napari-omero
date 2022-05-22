@@ -16,6 +16,9 @@ jobs:
   test:
     name: ${{ matrix.platform }} ${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
