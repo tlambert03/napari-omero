@@ -6,7 +6,14 @@ from qtpy.QtCore import (
     QModelIndex,
     Qt,
 )
-from qtpy.QtWidgets import QLabel, QSplitter, QTreeView, QVBoxLayout, QWidget
+from qtpy.QtWidgets import (
+    QLabel,
+    QPushButton,
+    QSplitter,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .gateway import QGateWay
 from .login import LoginForm
@@ -21,16 +28,13 @@ class OMEROWidget(QWidget):
         self.tree = QTreeView(self)
         self.tree.setHeaderHidden(True)
         # self.tree.setSelectionMode(QTreeView.MultiSelection)
-        self.model = OMEROTreeModel(self.gateway, self)
         self.thumb_grid = ThumbGrid(self.gateway, self)
         self.thumb_grid.hide()
         self.login = LoginForm(self.gateway, self)
         self.login.setWindowFlags(self.login.windowFlags() & ~Qt.Dialog)
 
-        self.tree.setModel(self.model)
-        self.tree.selectionModel().selectionChanged.connect(
-            self._on_tree_selection
-        )
+        self._setup_tree()
+
         self.thumb_grid.itemSelectionChanged.connect(
             self._on_thumbnail_selected
         )
@@ -40,16 +44,18 @@ class OMEROWidget(QWidget):
         self.status.hide()
         self.status.setAlignment(Qt.AlignCenter)
         self.status.setStyleSheet("QLabel{color: #AAA;}")
+        self.disconnect_button = QPushButton("Disconnect")
+        self.disconnect_button.hide()
+
         layout.addWidget(self.status)
         layout.addWidget(self.splitter)
+
         self.splitter.addWidget(self.login)
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.thumb_grid)
-        self.gateway.connected.connect(self._show_connection_label)
-
-    def _show_connection_label(self):
-        self.status.setText(f"{self.gateway._user}@{self.gateway._host}")
-        self.status.show()
+        self.splitter.addWidget(self.disconnect_button)
+        self.gateway.connected.connect(self._on_connect)
+        self.disconnect_button.clicked.connect(self._on_disconnect)
 
     @property
     def viewer(self):
@@ -68,6 +74,31 @@ class OMEROWidget(QWidget):
                 QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
             )
         self.load_image(wrapper)
+
+    def _setup_tree(self):
+        """Set up QTreeView with a fresh tree model."""
+        self.model = OMEROTreeModel(self.gateway, self)
+        self.tree.setModel(self.model)
+        self.tree.selectionModel().selectionChanged.connect(
+            self._on_tree_selection
+        )
+
+    def _on_disconnect(self):
+        """Hide project widgets (tree, thumb grid) and disconnect button."""
+        self.status.setText("Not connected")
+        self.gateway.close()
+        self.disconnect_button.hide()
+        self.tree.hide()
+        self.thumb_grid.hide()
+
+        self._setup_tree()
+
+    def _on_connect(self):
+        """Show project tree and disconnect button."""
+        self.status.setText(f"{self.gateway._user}@{self.gateway._host}")
+        self.status.show()
+        self.tree.show()
+        self.disconnect_button.show()
 
     def _on_tree_selection(
         self, selected: QItemSelection, deselected: QItemSelection
