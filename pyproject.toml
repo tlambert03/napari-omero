@@ -140,6 +140,7 @@ filterwarnings = [
     "ignore:the imp module is deprecated in:",
     "ignore:'U' mode is deprecated",
     "ignore:Please import PackageMetadata from 'npe2'",
+    "ignore:`np.bool8` is a deprecated alias for `np.bool_`:DeprecationWarning:skimage",
 ]
 
 
