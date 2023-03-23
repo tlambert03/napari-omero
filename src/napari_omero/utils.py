@@ -45,7 +45,7 @@ def timer(func):
     return wrapper_timer
 
 
-@timer
+# @timer
 def lookup_obj(conn: BlitzGateway, iobj: IObject) -> BlitzObjectWrapper:
     """Find object of type by ID."""
     conn.SERVICE_OPTS.setOmeroGroup("-1")

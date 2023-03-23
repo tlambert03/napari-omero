@@ -1,7 +1,7 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import dask.array as da
-from dask import delayed
+from dask.delayed import delayed
 from napari.types import LayerData
 from omero.cli import ProxyStringType
 from omero.gateway import BlitzGateway, ImageWrapper
@@ -12,8 +12,8 @@ from ..utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from ..widgets import QGateWay
 
 
-@timer
-def get_gateway(path: str, host: str = None) -> BlitzGateway:
+# @timer
+def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
@@ -49,8 +49,10 @@ def omero_url_reader(path: str) -> List[LayerData]:
     return []
 
 
-@timer
-def omero_proxy_reader(path: str, proxy_obj: IObject = None) -> List[LayerData]:
+# @timer
+def omero_proxy_reader(
+    path: str, proxy_obj: Optional[IObject] = None
+) -> List[LayerData]:
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
@@ -104,7 +106,7 @@ def get_omero_metadata(image: ImageWrapper) -> Dict:
     }
 
 
-@timer
+# @timer
 def get_data_lazy(image: ImageWrapper) -> da.Array:
     """Get 5D dask array, with delayed reading from OMERO image."""
     nt, nc, nz, ny, nx = (getattr(image, f"getSize{x}")() for x in "TCZYX")
@@ -112,7 +114,7 @@ def get_data_lazy(image: ImageWrapper) -> da.Array:
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
     get_plane = delayed(timer(lambda idx: pixels.getPlane(*idx)))
 
-    def get_lazy_plane(zct):
+    def get_lazy_plane(zct: tuple[int, ...]):
         return da.from_delayed(get_plane(zct), shape=(ny, nx), dtype=dtype)
 
     # 5D stack: TCZXY

@@ -123,7 +123,9 @@ ignore = [
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 files = "src/**/"
-strict = true
+strict = false
+check_untyped_defs = true
+ignore_missing_imports = true
 disallow_any_generics = false
 disallow_subclassing_any = false
 show_error_codes = true

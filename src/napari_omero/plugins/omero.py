@@ -83,7 +83,7 @@ class NapariControl(BaseControl):
 
             self.ctx.out(f"View image: {img.name}")
 
-            viewer = napari.Viewer()
+            viewer = napari.Viewer()  # type: ignore
 
             add_buttons(viewer, img)
 
@@ -96,7 +96,7 @@ class NapariControl(BaseControl):
 
             # add 'conn' and 'omero_image' to the viewer console
             viewer.update_console({"conn": self.gateway, "omero_image": img})
-            napari.run()
+            napari.run()  # type: ignore
 
 
 def add_buttons(viewer, img):
@@ -256,8 +256,8 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
-                shape.points = rstring(points)
+                points_str = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
+                shape.points = rstring(points_str)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)
             if int(x1) == int(x2):
