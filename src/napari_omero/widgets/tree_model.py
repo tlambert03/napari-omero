@@ -25,7 +25,7 @@ class OMEROTreeItem(QStandardItem):
             self.child_type,
             opts={
                 self.wrapper_type.lower(): self.wrapper.id,
-                'order_by': 'obj.name',
+                "order_by": "obj.name",
             },
         )
 
@@ -34,7 +34,7 @@ class OMEROTreeItem(QStandardItem):
 
     @property
     def child_type(self) -> Optional[str]:
-        kls = self.wrapper.CHILD_WRAPPER_CLASS or ''
+        kls = self.wrapper.CHILD_WRAPPER_CLASS or ""
         kls = kls if isinstance(kls, str) else kls.__name__
         return kls.lstrip("_").replace("Wrapper", "") if kls else None
 
@@ -44,13 +44,13 @@ class OMEROTreeItem(QStandardItem):
 
     @property
     def parent_type(self) -> Optional[str]:
-        kls = self.wrapper.PARENT_WRAPPER_CLASS or ''
+        kls = self.wrapper.PARENT_WRAPPER_CLASS or ""
         kls = kls if isinstance(kls, str) else kls.__name__
         return kls.lstrip("_").replace("Wrapper", "") if kls else None
 
     @property
     def n_children(self) -> int:
-        if not hasattr(self, '_n_children'):
+        if not hasattr(self, "_n_children"):
             self._n_children = self.wrapper.countChildren()
         return self._n_children
 
@@ -67,17 +67,15 @@ class OMEROTreeModel(QStandardItemModel):
         self.gateway = gateway
         self.gateway.connected.connect(
             lambda g: self.gateway._submit(
-                self._get_projects, _connect={'returned': self._add_projects}
+                self._get_projects, _connect={"returned": self._add_projects}
             )
         )
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
     def _get_projects(self):
         root = self.invisibleRootItem()
-        root.appendRow(QStandardItem('loading...'))
-        return self.gateway.getObjects(
-            "Project", opts={'order_by': 'obj.name'}
-        )
+        root.appendRow(QStandardItem("loading..."))
+        return self.gateway.getObjects("Project", opts={"order_by": "obj.name"})
 
     def _add_projects(self, projects):
         root = self.invisibleRootItem()

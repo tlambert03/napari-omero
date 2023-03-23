@@ -63,9 +63,7 @@ class ThumbGrid(QListWidget):
             self.clear()
             self._item_map.clear()
             for img in item.wrapper.listChildren():
-                for byte in conn.getThumbnailSet(
-                    [img.getId()], THUMBSIZE
-                ).values():
+                for byte in conn.getThumbnailSet([img.getId()], THUMBSIZE).values():
                     yield byte, img
 
         return self.gateway._submit(

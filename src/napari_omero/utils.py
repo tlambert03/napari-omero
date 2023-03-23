@@ -31,7 +31,7 @@ PROXIES = (
 
 
 def timer(func):
-    """Print the runtime of the decorated function"""
+    """Print the runtime of the decorated function."""
 
     @functools.wraps(func)
     def wrapper_timer(*args, **kwargs):
@@ -58,8 +58,7 @@ def lookup_obj(conn: BlitzGateway, iobj: IObject) -> BlitzObjectWrapper:
 
 
 omero_url_pattern = re.compile(
-    r"https?://(?P<host>[^/]+).*/webclient"
-    r"/\?show=(?P<type>[a-z]+)-(?P<id>[0-9]+)"
+    r"https?://(?P<host>[^/]+).*/webclient" r"/\?show=(?P<type>[a-z]+)-(?P<id>[0-9]+)"
 )
 
 omero_object_pattern = re.compile(
@@ -73,7 +72,7 @@ def parse_omero_url(url: str) -> Optional[Dict[str, str]]:
 
 
 def get_proxy_obj(path: str) -> Optional[IObject]:
-    """If path ends with e.g. Image:ID return proxy obj"""
+    """If path ends with e.g. Image:ID return proxy obj."""
     if path.startswith("omero://"):
         path = path[8:]
     match = omero_object_pattern.search(path)

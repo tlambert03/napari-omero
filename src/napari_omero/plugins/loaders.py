@@ -50,9 +50,7 @@ def omero_url_reader(path: str) -> List[LayerData]:
 
 
 @timer
-def omero_proxy_reader(
-    path: str, proxy_obj: IObject = None
-) -> List[LayerData]:
+def omero_proxy_reader(path: str, proxy_obj: IObject = None) -> List[LayerData]:
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
@@ -82,9 +80,7 @@ def get_omero_metadata(image: ImageWrapper) -> Dict:
         color = [r / 256 for r in color]
         colors.append(Colormap([[0, 0, 0], color]))
 
-    contrast_limits = [
-        [ch.getWindowStart(), ch.getWindowEnd()] for ch in channels
-    ]
+    contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
     visibles = [ch.isActive() for ch in channels]
     names = [ch.getLabel() for ch in channels]
@@ -99,19 +95,19 @@ def get_omero_metadata(image: ImageWrapper) -> Dict:
     #         scale = [1, size_z / size_x, 1, 1]
 
     return {
-        'channel_axis': 1,
-        'colormap': colors,
-        'contrast_limits': contrast_limits,
-        'name': names,
-        'visible': visibles,
-        'scale': scale,
+        "channel_axis": 1,
+        "colormap": colors,
+        "contrast_limits": contrast_limits,
+        "name": names,
+        "visible": visibles,
+        "scale": scale,
     }
 
 
 @timer
 def get_data_lazy(image: ImageWrapper) -> da.Array:
     """Get 5D dask array, with delayed reading from OMERO image."""
-    nt, nc, nz, ny, nx = [getattr(image, f'getSize{x}')() for x in 'TCZYX']
+    nt, nc, nz, ny, nx = (getattr(image, f"getSize{x}")() for x in "TCZYX")
     pixels = image.getPrimaryPixels()
     dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
     get_plane = delayed(timer(lambda idx: pixels.getPlane(*idx)))

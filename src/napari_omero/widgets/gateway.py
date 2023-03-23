@@ -31,8 +31,8 @@ class QGateWay(QObject):
         self.store = SessionsStore()
         self.destroyed.connect(self.close)
         atexit.register(self.close)
-        self.worker: Optional['WorkerBase'] = None
-        self._next_worker: Optional['WorkerBase'] = None
+        self.worker: Optional["WorkerBase"] = None
+        self._next_worker: Optional["WorkerBase"] = None
 
     @property
     def conn(self):
@@ -98,9 +98,7 @@ class QGateWay(QObject):
         else:
             self.worker = None
 
-    def _submit(
-        self, func: Callable, *args, _wait=True, **kwargs
-    ) -> 'WorkerBase':
+    def _submit(self, func: Callable, *args, _wait=True, **kwargs) -> "WorkerBase":
         from napari.qt.threading import create_worker
 
         new_worker = create_worker(func, *args, _start_thread=False, **kwargs)
@@ -133,16 +131,10 @@ class QGateWay(QObject):
                 self.error.emit(e)
         return None
 
-    def create_session(
-        self, host: str, port: str, username: str, password: str
-    ):
-        return self._submit(
-            self._create_session, host, port, username, password
-        )
+    def create_session(self, host: str, port: str, username: str, password: str):
+        return self._submit(self._create_session, host, port, username, password)
 
-    def _create_session(
-        self, host: str, port: str, username: str, password: str
-    ):
+    def _create_session(self, host: str, port: str, username: str, password: str):
         self.status.emit("connecting...")
         try:
             props = {
@@ -150,7 +142,7 @@ class QGateWay(QObject):
                 "omero.user": username,
             }
             if port:
-                props['omero.port'] = port
+                props["omero.port"] = port
             session = self.store.create(username, password, props)
             return self._on_new_session(session)
         except Exception as e:
@@ -183,7 +175,7 @@ class NonCachedPixelsWrapper(PixelsWrapper):
 
     def _prepareRawPixelsStore(self):
         """
-        Creates RawPixelsStore and sets the id etc
+        Creates RawPixelsStore and sets the id etc.
 
         This overrides the superclass behaviour to make sure that
         we don't re-use RawPixelStore in multiple processes since

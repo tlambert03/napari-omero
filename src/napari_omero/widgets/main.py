@@ -35,9 +35,7 @@ class OMEROWidget(QWidget):
 
         self._setup_tree()
 
-        self.thumb_grid.itemSelectionChanged.connect(
-            self._on_thumbnail_selected
-        )
+        self.thumb_grid.itemSelectionChanged.connect(self._on_thumbnail_selected)
         layout = QVBoxLayout(self)
         self.splitter = QSplitter(Qt.Vertical, self)
         self.status = QLabel(self)
@@ -79,9 +77,7 @@ class OMEROWidget(QWidget):
         """Set up QTreeView with a fresh tree model."""
         self.model = OMEROTreeModel(self.gateway, self)
         self.tree.setModel(self.model)
-        self.tree.selectionModel().selectionChanged.connect(
-            self._on_tree_selection
-        )
+        self.tree.selectionModel().selectionChanged.connect(self._on_tree_selection)
 
     def _on_disconnect(self):
         """Hide project widgets (tree, thumb grid) and disconnect button."""
@@ -100,9 +96,7 @@ class OMEROWidget(QWidget):
         self.tree.show()
         self.disconnect_button.show()
 
-    def _on_tree_selection(
-        self, selected: QItemSelection, deselected: QItemSelection
-    ):
+    def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
         item = self.model.itemFromIndex(selected.indexes()[0])
         self.thumb_grid.set_item(item)
 

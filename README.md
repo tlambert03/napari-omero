@@ -1,10 +1,11 @@
 # napari-omero
 
-[![License](https://img.shields.io/github/license/tlambert03/napari-omero)](LICENSE)
-[![Version](https://img.shields.io/pypi/v/napari-omero.svg)](https://pypi.python.org/pypi/napari-omero)
-[![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg)](https://python.org)
-[![CI](https://github.com/tlambert03/napari-omero/workflows/CI/badge.svg)](https://github.com/tlambert03/napari-omero/actions)
-<!-- [![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero) -->
+[![License](https://img.shields.io/pypi/l/napari-omero.svg?color=green)](https://github.com/tlambert03/napari-omero/raw/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/napari-omero.svg?color=green)](https://pypi.org/project/napari-omero)
+[![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg?color=green)](https://python.org)
+[![CI](https://github.com/tlambert03/napari-omero/actions/workflows/ci.yml/badge.svg)](https://github.com/tlambert03/napari-omero/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tlambert03/napari-omero/branch/main/graph/badge.svg)](https://codecov.io/gh/tlambert03/napari-omero)
+[![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero)
 
 This package provides interoperability between the
 [OMERO](https://www.openmicroscopy.org/omero/) image management platform, and

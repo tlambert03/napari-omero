@@ -19,7 +19,7 @@ def create_roi(image: ImageWrapper, shapes) -> RoiI:
 
 def save_labels(layer, image: ImageWrapper) -> List[RoiI]:
     """
-    Saves masks from a 5D image (no C dimension)
+    Saves masks from a 5D image (no C dimension).
 
     Each non-zero value in the labels data
     is used to create an ROI in OMERO with a
@@ -40,7 +40,7 @@ def save_labels(layer, image: ImageWrapper) -> List[RoiI]:
 
 
 def save_label(bool_4d: np.ndarray, image: ImageWrapper, rgba) -> RoiI:
-    """Turns a boolean array of shape (t, z, y, x) into OMERO Roi"""
+    """Turns a boolean array of shape (t, z, y, x) into OMERO Roi."""
     size_t = bool_4d.shape[0]
     size_z = bool_4d.shape[1]
     # Create an ROI with a shape for each Z/T that has some mask

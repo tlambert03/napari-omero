@@ -3,7 +3,7 @@ from functools import wraps
 
 import napari
 import numpy
-import omero.clients  # noqa
+import omero.clients
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
 from napari.layers.shapes.shapes import Shapes as shapes_layer
@@ -53,7 +53,6 @@ def gateway_required(func):
 
 
 class NapariControl(BaseControl):
-
     gateway = None
     client = None
 
@@ -76,7 +75,6 @@ class NapariControl(BaseControl):
 
     @gateway_required
     def view(self, args):
-
         if isinstance(args.object, ImageI):
             try:
                 img = lookup_obj(self.gateway, args.object)
@@ -90,7 +88,7 @@ class NapariControl(BaseControl):
             add_buttons(viewer, img)
 
             viewer.open(
-                f'omero://{obj_to_proxy_string(args.object)}',
+                f"omero://{obj_to_proxy_string(args.object)}",
                 plugin="napari-omero",
             )
             set_dims_defaults(viewer, img)
@@ -102,9 +100,7 @@ class NapariControl(BaseControl):
 
 
 def add_buttons(viewer, img):
-    """
-    Add custom buttons to the viewer UI
-    """
+    """Add custom buttons to the viewer UI."""
 
     def handle_save_rois():
         save_rois(viewer, img)
@@ -116,7 +112,7 @@ def add_buttons(viewer, img):
 
 def get_data(img, c=0):
     """
-    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x)
+    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x).
 
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
@@ -138,7 +134,7 @@ def get_data(img, c=0):
 def set_dims_labels(viewer, image):
     """
     Set labels on napari viewer dims, based on
-    dimensions of OMERO image
+    dimensions of OMERO image.
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
@@ -153,7 +149,7 @@ def set_dims_labels(viewer, image):
 def set_dims_defaults(viewer, image):
     """
     Set Z/T slider index on napari viewer, according
-    to default Z/T indecies of the OMERO image
+    to default Z/T indecies of the OMERO image.
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
@@ -169,7 +165,7 @@ def save_rois(viewer, image):
     """
     Usage: In napari, open console...
     >>> from napari_omero import *
-    >>> save_rois(viewer, omero_image)
+    >>> save_rois(viewer, omero_image).
     """
     conn = image._conn
 
@@ -184,9 +180,7 @@ def save_rois(viewer, image):
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [
-                    layer.shape_type for _ in range(len(layer.data))
-                ]
+                shape_types = [layer.shape_type for _ in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
@@ -296,7 +290,7 @@ class NonCachedPixelsWrapper(PixelsWrapper):
 
     def _prepareRawPixelsStore(self):
         """
-        Creates RawPixelsStore and sets the id etc
+        Creates RawPixelsStore and sets the id etc.
 
         This overrides the superclass behaviour to make sure that
         we don't re-use RawPixelStore in multiple processes since
