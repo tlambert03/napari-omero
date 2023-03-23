@@ -58,7 +58,7 @@ jobs:
         run: |
           mamba install omero-py
           python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools tox tox-conda tox-gh-actions
+          python -m pip install .[test]
 
       - name: Test
         uses: coactions/setup-xvfb@v1
