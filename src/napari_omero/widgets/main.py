@@ -13,6 +13,8 @@ from qtpy.QtWidgets import (
     QTreeView,
     QVBoxLayout,
     QWidget,
+    QFormLayout,
+    QComboBox,
 )
 
 from .gateway import QGateWay
@@ -45,13 +47,23 @@ class OMEROWidget(QWidget):
         self.disconnect_button = QPushButton("Disconnect")
         self.disconnect_button.hide()
 
+        self.group_combo = QComboBox()
+        self.user_combo = QComboBox()
+
+        form_widget = QWidget()
+        form = QFormLayout()
+        form.addRow("Group", self.group_combo)
+        form.addRow("User", self.user_combo)
+        form_widget.setLayout(form)
+
         layout.addWidget(self.status)
+        layout.addWidget(form_widget)
         layout.addWidget(self.splitter)
+        layout.addWidget(self.disconnect_button)
 
         self.splitter.addWidget(self.login)
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.thumb_grid)
-        self.splitter.addWidget(self.disconnect_button)
         self.gateway.connected.connect(self._on_connect)
         self.disconnect_button.clicked.connect(self._on_disconnect)
 
@@ -95,6 +107,11 @@ class OMEROWidget(QWidget):
         self.status.show()
         self.tree.show()
         self.disconnect_button.show()
+
+    def _update_group_combo(self):
+        self.group_combo.clear()
+        for group in self.gateway.conn.getGroupsMemberOf():
+            self.group_combo.addItem(group.getName(), group.getId())
 
     def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
         item = self.model.itemFromIndex(selected.indexes()[0])
