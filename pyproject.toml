@@ -61,7 +61,7 @@ dependencies = [
 [project.optional-dependencies]
 all = ["napari[all]"]
 # add dependencies used for testing here
-tests = [
+test = [
     "pytest",
     "pytest-cov",
     "pytest-qt",
