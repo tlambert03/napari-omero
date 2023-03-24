@@ -45,6 +45,8 @@ class ThumbGrid(QListWidget):
             self.select_image()
 
     def select_image(self):
+        if not self._current_item:
+            return
         wrapper = self._current_item.wrapper
         item = self._item_map.get(wrapper.getId())
         if item:
@@ -86,5 +88,5 @@ class ThumbGrid(QListWidget):
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
-        if self._current_item.isImage():
+        if self._current_item and self._current_item.isImage():
             self.select_image()
