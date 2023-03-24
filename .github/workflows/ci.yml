@@ -57,13 +57,16 @@ jobs:
       - name: Install dependencies
         run: |
           mamba install omero-py
+          which python
           python -m pip install --upgrade pip
           python -m pip install .[test]
 
       - name: Test
         uses: aganders3/headless-gui@v1
         with:
-          run: pytest --color=yes --cov=napari_omero --cov-report=xml --cov-report=term-missing
+          run: |
+            which python
+            python -m pytest --color=yes --cov=napari_omero --cov-report=xml --cov-report=term-missing
 
       - name: Codecov
         uses: codecov/codecov-action@v2
