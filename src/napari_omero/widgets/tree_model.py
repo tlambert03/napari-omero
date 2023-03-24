@@ -1,10 +1,16 @@
-from typing import Dict, Optional
+import itertools
+from typing import Any, Dict, Optional
 
 from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
-from qtpy.QtCore import QModelIndex
+from qtpy.QtCore import QModelIndex, Qt
 from qtpy.QtGui import QStandardItem, QStandardItemModel
 
 from .gateway import QGateWay
+
+_ICON_MAP = {
+    "Project": "🗃",
+    "Dataset": "📁",
+}
 
 
 class OMEROTreeItem(QStandardItem):
@@ -16,6 +22,12 @@ class OMEROTreeItem(QStandardItem):
             self.setText(f"{self.wrapper.getName()} ({self.n_children})")
         else:
             self.setText(f"{self.wrapper.getName()}")
+
+    def data(self, role: int = 0) -> Any:
+        d = super().data(role)
+        if role == Qt.ItemDataRole.DisplayRole:
+            d = _ICON_MAP.get(self.wrapper_type, "") + d
+        return d
 
     def canFetchMore(self) -> bool:
         return not self._has_fetched and self.hasChildren()
@@ -65,21 +77,35 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
-        self.gateway.connected.connect(
-            lambda g: self.gateway._submit(
-                self._get_projects, _connect={"returned": self._add_projects}
-            )
-        )
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
-    def _get_projects(self):
+    def submit_get_projects(self, *_, owner=None, group=None):
+        self.gateway._submit(
+            self._get_projects,
+            owner=owner,
+            group=group,
+            _connect={"returned": self._add_projects},
+        )
+
+    def _get_projects(self, owner=None, group=None):
         root = self.invisibleRootItem()
+        while root.rowCount() > 0:
+            root.removeRow(0)
         root.appendRow(QStandardItem("loading..."))
-        return self.gateway.getObjects("Project", opts={"order_by": "obj.name"})
+        opts = {"order_by": "obj.name"}
+        if owner is not None:
+            opts["owner"] = owner
+        if group is not None:
+            self.gateway.conn.setGroupForSession(group)
+        return itertools.chain(
+            self.gateway.getObjects("Project", opts=opts),
+            self.gateway.getObjects("Dataset", opts={**opts, "orphaned": True}),
+        )
 
     def _add_projects(self, projects):
         root = self.invisibleRootItem()
         root.removeRow(0)
+        projects = list(projects)
         for project in projects:
             item = OMEROTreeItem(project)
             root.appendRow(item)

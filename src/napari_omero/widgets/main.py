@@ -13,7 +13,7 @@ from qtpy.QtWidgets import (
     QTreeView,
     QVBoxLayout,
     QWidget,
-    QFormLayout,
+    QHBoxLayout,
     QComboBox,
 )
 
@@ -21,6 +21,7 @@ from .gateway import QGateWay
 from .login import LoginForm
 from .thumb_grid import ThumbGrid
 from .tree_model import OMEROTreeModel
+from superqt.utils import signals_blocked
 
 
 class OMEROWidget(QWidget):
@@ -48,16 +49,30 @@ class OMEROWidget(QWidget):
         self.disconnect_button.hide()
 
         self.group_combo = QComboBox()
-        self.user_combo = QComboBox()
+        self.group_combo.currentIndexChanged.connect(self._on_groupuser_changed)
+        self.group_widget = QWidget()
+        self.group_widget.setLayout(QHBoxLayout())
+        lbl = QLabel("Group:")
+        lbl.setFixedWidth(50)
+        self.group_widget.layout().setContentsMargins(0, 0, 0, 0)
+        self.group_widget.layout().addWidget(lbl)
+        self.group_widget.layout().addWidget(self.group_combo)
+        self.group_widget.hide()
 
-        form_widget = QWidget()
-        form = QFormLayout()
-        form.addRow("Group", self.group_combo)
-        form.addRow("User", self.user_combo)
-        form_widget.setLayout(form)
+        self.user_combo = QComboBox()
+        self.user_combo.currentIndexChanged.connect(self._on_groupuser_changed)
+        self.user_widget = QWidget()
+        self.user_widget.setLayout(QHBoxLayout())
+        lbl = QLabel("User:")
+        lbl.setFixedWidth(50)
+        self.user_widget.layout().setContentsMargins(0, 0, 0, 0)
+        self.user_widget.layout().addWidget(lbl)
+        self.user_widget.layout().addWidget(self.user_combo)
+        self.user_widget.hide()
 
         layout.addWidget(self.status)
-        layout.addWidget(form_widget)
+        layout.addWidget(self.group_widget)
+        layout.addWidget(self.user_widget)
         layout.addWidget(self.splitter)
         layout.addWidget(self.disconnect_button)
 
@@ -88,6 +103,7 @@ class OMEROWidget(QWidget):
     def _setup_tree(self):
         """Set up QTreeView with a fresh tree model."""
         self.model = OMEROTreeModel(self.gateway, self)
+        self.tree.setModel(None)
         self.tree.setModel(self.model)
         self.tree.selectionModel().selectionChanged.connect(self._on_tree_selection)
 
@@ -98,6 +114,8 @@ class OMEROWidget(QWidget):
         self.disconnect_button.hide()
         self.tree.hide()
         self.thumb_grid.hide()
+        self.group_widget.hide()
+        self.user_widget.hide()
 
         self._setup_tree()
 
@@ -106,12 +124,41 @@ class OMEROWidget(QWidget):
         self.status.setText(f"{self.gateway._user}@{self.gateway._host}")
         self.status.show()
         self.tree.show()
+        self.group_widget.show()
+        self.user_widget.show()
+        with signals_blocked(self.group_combo), signals_blocked(self.user_combo):
+            self._update_group_combo()
+        self._on_groupuser_changed()
         self.disconnect_button.show()
 
     def _update_group_combo(self):
         self.group_combo.clear()
+        self.group_combo.addItem('All', None)
         for group in self.gateway.conn.getGroupsMemberOf():
             self.group_combo.addItem(group.getName(), group.getId())
+        group = self.gateway.conn.getGroupFromContext()
+        self.group_combo.setCurrentText(group.getName())
+        self._update_user_combo()
+
+    def _update_user_combo(self):
+        self.user_combo.clear()
+        # List the group owners and other members
+        group = self.gateway.conn.getGroupFromContext()
+        self.user_combo.addItem('All', None)
+        self.user_combo.insertSeparator(self.user_combo.count())
+        owners, members = group.groupSummary()
+        for o in owners:
+            self.user_combo.addItem(o.getFullName(), o.getId())
+        self.user_combo.insertSeparator(self.user_combo.count())
+        for m in members:
+            self.user_combo.addItem(m.getFullName(), m.getId())
+        user = self.gateway.conn.getUser()
+        self.user_combo.setCurrentText(user.getFullName())
+
+    def _on_groupuser_changed(self):
+        group_id = self.group_combo.currentData()
+        user_id = self.user_combo.currentData()
+        self.model.submit_get_projects(owner=user_id, group=group_id)
 
     def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
         item = self.model.itemFromIndex(selected.indexes()[0])
@@ -122,6 +169,8 @@ class OMEROWidget(QWidget):
             self.load_image(item.wrapper)
 
     def load_image(self, wrapper: BlitzObjectWrapper):
+        if not self.viewer:
+            return
         self.viewer.layers.select_all()
         self.viewer.layers.remove_selected()
 

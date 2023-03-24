@@ -45,11 +45,10 @@ class ThumbGrid(QListWidget):
             self.select_image()
 
     def select_image(self):
-        if self._current_item is not None:
-            wrapper = self._current_item.wrapper
-            item = self._item_map.get(wrapper.getId())
-            if item:
-                self.setCurrentItem(item)
+        wrapper = self._current_item.wrapper
+        item = self._item_map.get(wrapper.getId())
+        if item:
+            self.setCurrentItem(item)
 
     def set_dataset(self, item):
         if not self.gateway.isConnected():
@@ -81,13 +80,11 @@ class ThumbGrid(QListWidget):
         icon = QIcon(QPixmap.fromImage(img))
         name = wrapper.getName()
         if len(name) > 18:
-            name = f"{name[:15]}..."
+            name = name[:15] + "..."
         item = QListWidgetItem(icon, name)
-        item.setTextAlignment(
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
-        )
+        item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
-        if self._current_item is not None and self._current_item.isImage():
+        if self._current_item.isImage():
             self.select_image()
