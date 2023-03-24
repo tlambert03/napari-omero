@@ -7,21 +7,21 @@ from qtpy.QtCore import (
     Qt,
 )
 from qtpy.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QSplitter,
     QTreeView,
     QVBoxLayout,
     QWidget,
-    QHBoxLayout,
-    QComboBox,
 )
+from superqt.utils import signals_blocked
 
 from .gateway import QGateWay
 from .login import LoginForm
 from .thumb_grid import ThumbGrid
 from .tree_model import OMEROTreeModel
-from superqt.utils import signals_blocked
 
 
 class OMEROWidget(QWidget):
@@ -133,7 +133,7 @@ class OMEROWidget(QWidget):
 
     def _update_group_combo(self):
         self.group_combo.clear()
-        self.group_combo.addItem('All', None)
+        self.group_combo.addItem("All", None)
         for group in self.gateway.conn.getGroupsMemberOf():
             self.group_combo.addItem(group.getName(), group.getId())
         group = self.gateway.conn.getGroupFromContext()
@@ -144,7 +144,7 @@ class OMEROWidget(QWidget):
         self.user_combo.clear()
         # List the group owners and other members
         group = self.gateway.conn.getGroupFromContext()
-        self.user_combo.addItem('All', None)
+        self.user_combo.addItem("All", None)
         self.user_combo.insertSeparator(self.user_combo.count())
         owners, members = group.groupSummary()
         for o in owners:
