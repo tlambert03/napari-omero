@@ -53,7 +53,6 @@ def gateway_required(func):
 
 
 class NapariControl(BaseControl):
-
     gateway = None
     client = None
 
@@ -76,7 +75,6 @@ class NapariControl(BaseControl):
 
     @gateway_required
     def view(self, args):
-
         if isinstance(args.object, ImageI):
             try:
                 img = lookup_obj(self.gateway, args.object)

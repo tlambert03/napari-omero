@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import dask.array as da
 from dask import delayed
@@ -13,7 +13,7 @@ from ..widgets import QGateWay
 
 
 @timer
-def get_gateway(path: str, host: str = None) -> BlitzGateway:
+def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
