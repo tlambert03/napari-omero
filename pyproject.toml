@@ -16,7 +16,7 @@ dynamic = ["version"]
 description = "napari/OMERO interoperability"
 readme = "README.md"
 requires-python = ">=3.7"
-license = { text = "BSD-3-Clause" }
+license = { text = "GPL-2.0-or-later" }
 authors = [
     { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
     { name = "Will Moore" },
@@ -30,7 +30,7 @@ classifiers = [
     "Intended Audience :: Education",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.10",
