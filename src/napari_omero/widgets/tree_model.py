@@ -77,6 +77,11 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
+        self.gateway.connected.connect(
+            lambda g: self.gateway._submit(
+                self._get_projects, _connect={"returned": self._add_projects}
+            )
+        )
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
     def submit_get_projects(self, *_, owner=None, group=None):
