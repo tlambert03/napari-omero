@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Copyright (C) 2019 University of Dundee & Open Microscopy Environment.
 # All rights reserved.

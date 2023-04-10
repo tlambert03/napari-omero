@@ -1,6 +1,6 @@
 name: CI
 
-on: 
+on:
   push:
     branches:
       - main
@@ -12,6 +12,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-manifest:
+    # check-manifest is a tool that checks that all files in version control are
+    # included in the sdist (unless explicitly excluded)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: pipx run check-manifest
 
   test:
     name: ${{ matrix.platform }} ${{ matrix.python-version }}
@@ -23,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.9, '3.10']
+        python-version: ["3.8", "3.9", "3.10"]
         backend: [pyqt5]
         include:
           - platform: ubuntu-latest
@@ -53,7 +60,10 @@ jobs:
           python -m pip install --upgrade setuptools tox tox-conda tox-gh-actions
 
       - name: Test with tox
-        run: tox
+        uses: aganders3/headless-gui@v1.2
+        with:
+          shell: bash -el {0}
+          run: python -m tox
         env:
           PLATFORM: ${{ matrix.platform }}
           PYTHON: ${{ matrix.python-version }}
@@ -62,13 +72,10 @@ jobs:
 
       - name: Codecov
         uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true
-
 
   deploy:
     # this will run when you have tagged a commit, starting with "v*"
-    # and requires that you have put your twine API key in your 
+    # and requires that you have put your twine API key in your
     needs: [test]
     if: github.repository == 'tlambert03/napari-omero' && contains(github.ref, 'tags')
     runs-on: ubuntu-latest
