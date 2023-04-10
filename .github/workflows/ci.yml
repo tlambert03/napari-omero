@@ -60,8 +60,9 @@ jobs:
           python -m pip install --upgrade setuptools tox tox-conda tox-gh-actions
 
       - name: Test with tox
-        uses: coactions/setup-xvfb@v1
+        uses: aganders3/headless-gui@v1.2
         with:
+          shell: bash -el {0}
           run: python -m tox
         env:
           PLATFORM: ${{ matrix.platform }}
