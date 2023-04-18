@@ -77,14 +77,13 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
-        self.gateway.connected.connect(
-            lambda g: self.gateway._submit(
-                self._get_projects, _connect={"returned": self._add_projects}
-            )
-        )
         self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
 
     def submit_get_projects(self, *_, owner=None, group=None):
+        root = self.invisibleRootItem()
+        while root.rowCount() > 0:
+            root.removeRow(0)
+        root.appendRow(QStandardItem("loading..."))
         self.gateway._submit(
             self._get_projects,
             owner=owner,
@@ -93,15 +92,12 @@ class OMEROTreeModel(QStandardItemModel):
         )
 
     def _get_projects(self, owner=None, group=None):
-        root = self.invisibleRootItem()
-        while root.rowCount() > 0:
-            root.removeRow(0)
-        root.appendRow(QStandardItem("loading..."))
         opts = {"order_by": "obj.name"}
         if owner is not None:
             opts["owner"] = owner
-        if group is not None:
-            self.gateway.conn.setGroupForSession(group)
+        if group is None:
+            group = -1
+        self.gateway.conn.SERVICE_OPTS.setOmeroGroup(group)
         return itertools.chain(
             self.gateway.getObjects("Project", opts=opts),
             self.gateway.getObjects("Dataset", opts={**opts, "orphaned": True}),
@@ -109,7 +105,8 @@ class OMEROTreeModel(QStandardItemModel):
 
     def _add_projects(self, projects):
         root = self.invisibleRootItem()
-        root.removeRow(0)
+        while root.rowCount() > 0:
+            root.removeRow(0)
         projects = list(projects)
         for project in projects:
             item = OMEROTreeItem(project)

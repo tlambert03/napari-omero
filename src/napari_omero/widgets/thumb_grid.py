@@ -89,5 +89,5 @@ class ThumbGrid(QListWidget):
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
-        if self._current_item is not None and self._current_item.isImage():
+        if isinstance(self._current_item, OMEROTreeItem) and self._current_item.isImage():
             self.select_image()

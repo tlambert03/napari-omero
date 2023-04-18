@@ -1,4 +1,4 @@
-from omero.gateway import BlitzObjectWrapper
+from omero.gateway import BlitzObjectWrapper, ExperimenterGroupWrapper
 from qtpy.QtCore import (
     QCoreApplication,
     QItemSelection,
@@ -27,6 +27,8 @@ from .tree_model import OMEROTreeModel
 class OMEROWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self._group_wrapper: ExperimenterGroupWrapper | None = None
+
         self.gateway = QGateWay(self)
         self.tree = QTreeView(self)
         self.tree.setHeaderHidden(True)
@@ -49,7 +51,7 @@ class OMEROWidget(QWidget):
         self.disconnect_button.hide()
 
         self.group_combo = QComboBox()
-        self.group_combo.currentIndexChanged.connect(self._on_groupuser_changed)
+        self.group_combo.currentIndexChanged.connect(self._on_group_changed)
         self.group_widget = QWidget()
         self.group_widget.setLayout(QHBoxLayout())
         lbl = QLabel("Group:")
@@ -60,7 +62,7 @@ class OMEROWidget(QWidget):
         self.group_widget.hide()
 
         self.user_combo = QComboBox()
-        self.user_combo.currentIndexChanged.connect(self._on_groupuser_changed)
+        self.user_combo.currentIndexChanged.connect(self._on_user_changed)
         self.user_widget = QWidget()
         self.user_widget.setLayout(QHBoxLayout())
         lbl = QLabel("User:")
@@ -126,42 +128,63 @@ class OMEROWidget(QWidget):
         self.tree.show()
         self.group_widget.show()
         self.user_widget.show()
+        self._group_wrapper = self.gateway.conn.getGroupFromContext()
         with signals_blocked(self.group_combo), signals_blocked(self.user_combo):
             self._update_group_combo()
-        self._on_groupuser_changed()
+        self._on_user_changed()
         self.disconnect_button.show()
 
     def _update_group_combo(self):
-        self.group_combo.clear()
-        self.group_combo.addItem("All", None)
-        for group in self.gateway.conn.getGroupsMemberOf():
-            self.group_combo.addItem(group.getName(), group.getId())
-        group = self.gateway.conn.getGroupFromContext()
-        self.group_combo.setCurrentText(group.getName())
-        self._update_user_combo()
+        with signals_blocked(self.group_combo):
+            self.group_combo.clear()
+            self.group_combo.addItem("All", None)
+            for group in self.gateway.conn.getGroupsMemberOf():
+                self.group_combo.addItem(group.getName(), group.getId())
+        self.group_combo.setCurrentText(self._group_wrapper.getName())
+        self._on_group_changed()
 
     def _update_user_combo(self):
-        self.user_combo.clear()
         # List the group owners and other members
-        group = self.gateway.conn.getGroupFromContext()
-        self.user_combo.addItem("All", None)
-        self.user_combo.insertSeparator(self.user_combo.count())
-        owners, members = group.groupSummary()
-        for o in owners:
-            self.user_combo.addItem(o.getFullName(), o.getId())
-        self.user_combo.insertSeparator(self.user_combo.count())
-        for m in members:
-            self.user_combo.addItem(m.getFullName(), m.getId())
-        user = self.gateway.conn.getUser()
-        self.user_combo.setCurrentText(user.getFullName())
+        current_user = self.user_combo.currentText()
+        with signals_blocked(self.user_combo):
+            self.user_combo.clear()
+            self.user_combo.addItem("All", None)
+            self.user_combo.insertSeparator(self.user_combo.count())
+            owners, members = self._group_wrapper.groupSummary()
+            for o in owners:
+                self.user_combo.addItem(o.getFullName(), o.getId())
+            self.user_combo.insertSeparator(self.user_combo.count())
+            for m in members:
+                self.user_combo.addItem(m.getFullName(), m.getId())
 
-    def _on_groupuser_changed(self):
+            if current_user and self.user_combo.findText(current_user) > -1:
+                self.user_combo.setCurrentText(current_user)
+            else:
+                user = self.gateway.conn.getUser()
+                self.user_combo.setCurrentText(user.getFullName())
+        self._on_user_changed()
+
+    def _on_group_changed(self):
+        group_id = self.group_combo.currentData()
+        if group_id is None:
+            group_id = -1
+        conn = self.gateway.conn
+        conn.SERVICE_OPTS.setOmeroGroup(group_id)
+        group = conn.getAdminService().getGroup(group_id)
+        self._group_wrapper = ExperimenterGroupWrapper(conn, group)
+        self._update_user_combo()
+
+    def _on_user_changed(self):
         group_id = self.group_combo.currentData()
         user_id = self.user_combo.currentData()
         self.model.submit_get_projects(owner=user_id, group=group_id)
 
     def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
-        item = self.model.itemFromIndex(selected.indexes()[0])
+        indices = selected.indexes()
+        if not indices:
+            return
+
+        item = self.model.itemFromIndex(indices[0])
         self.thumb_grid.set_item(item)
 
         if item.isImage():
@@ -171,8 +194,6 @@ class OMEROWidget(QWidget):
     def load_image(self, wrapper: BlitzObjectWrapper):
         if not self.viewer:
             return
-        self.viewer.layers.select_all()
-        self.viewer.layers.remove_selected()
 
         type_ = wrapper.__class__.__name__[1:-7]
         id_ = wrapper.getId()
