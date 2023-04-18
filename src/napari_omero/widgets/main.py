@@ -140,8 +140,9 @@ class OMEROWidget(QWidget):
             self.group_combo.addItem("All", None)
             for group in self.gateway.conn.getGroupsMemberOf():
                 self.group_combo.addItem(group.getName(), group.getId())
-        self.group_combo.setCurrentText(self._group_wrapper.getName())
-        self._on_group_changed()
+        if self._group_wrapper is not None:
+            self.group_combo.setCurrentText(self._group_wrapper.getName())
+            self._on_group_changed()
 
     def _update_user_combo(self):
         # List the group owners and other members
@@ -149,13 +150,14 @@ class OMEROWidget(QWidget):
         with signals_blocked(self.user_combo):
             self.user_combo.clear()
             self.user_combo.addItem("All", None)
-            self.user_combo.insertSeparator(self.user_combo.count())
-            owners, members = self._group_wrapper.groupSummary()
-            for o in owners:
-                self.user_combo.addItem(o.getFullName(), o.getId())
-            self.user_combo.insertSeparator(self.user_combo.count())
-            for m in members:
-                self.user_combo.addItem(m.getFullName(), m.getId())
+            if self._group_wrapper is not None:
+                self.user_combo.insertSeparator(self.user_combo.count())
+                owners, members = self._group_wrapper.groupSummary()
+                for o in owners:
+                    self.user_combo.addItem(o.getFullName(), o.getId())
+                self.user_combo.insertSeparator(self.user_combo.count())
+                for m in members:
+                    self.user_combo.addItem(m.getFullName(), m.getId())
 
             if current_user and self.user_combo.findText(current_user) > -1:
                 self.user_combo.setCurrentText(current_user)
