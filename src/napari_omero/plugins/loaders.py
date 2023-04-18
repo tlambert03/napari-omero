@@ -1,5 +1,5 @@
-from typing import Dict, List, Optional
 from math import ceil
+from typing import Dict, List, Optional
 
 import dask.array as da
 import numpy as np
@@ -147,9 +147,9 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
     tile_w, tile_h = image._re.getTileSize()
 
     def get_tile(tile_name):
-        """ tile_name is 'level,z,t,x,y,w,h' """
+        """tile_name is 'level,z,t,x,y,w,h'"""
         # print('get_tile rps', tile_name)
-        level, z, c, t, x, y, w, h = [int(n) for n in tile_name.split(",")]
+        level, z, c, t, x, y, w, h = (int(n) for n in tile_name.split(","))
         pix = image._conn.c.sf.createRawPixelsStore()
         pix_id = image.getPixelsId()
         try:
@@ -170,7 +170,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
         cols = ceil(size_x / tile_w)
         rows = ceil(size_y / tile_h)
         # print('level', level, level_id, size_x, size_y)
-        print ('Cols', cols, 'Rows', rows)
+        print("Cols", cols, "Rows", rows)
         lazy_rows = []
         for row in range(rows):
             lazy_row = []
@@ -179,11 +179,13 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
                 y = row * tile_h
                 w = min(tile_w, size_x - x)
                 h = min(tile_h, size_y - y)
-                tile_name = "%s,%s,%s,%s,%s,%s,%s,%s" % (level_id, z, c, t, x, y, w, h)
-                lazy_tile = da.from_delayed(lazy_reader(tile_name), shape=(h, w), dtype=dtype)
+                tile_name = f"{level_id},{z},{c},{t},{x},{y},{w},{h}"
+                lazy_tile = da.from_delayed(
+                    lazy_reader(tile_name), shape=(h, w), dtype=dtype
+                )
                 lazy_row.append(lazy_tile)
             lazy_row = da.concatenate(lazy_row, axis=1)
-            print('lazy_row.shape', lazy_row.shape)
+            print("lazy_row.shape", lazy_row.shape)
             lazy_rows.append(lazy_row)
         return da.concatenate(lazy_rows, axis=0)
 
