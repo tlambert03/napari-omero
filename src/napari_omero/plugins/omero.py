@@ -1,12 +1,9 @@
 import sys
-import time
 from functools import wraps
 
-import numpy
-from qtpy.QtWidgets import QPushButton
-
 import napari
-import omero.clients  # noqa
+import numpy
+import omero.clients
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
 from napari.layers.shapes.shapes import Shapes as shapes_layer
@@ -23,8 +20,10 @@ from omero.model import (
     RoiI,
 )
 from omero.rtypes import rdouble, rint, rstring
+from qtpy.QtWidgets import QPushButton
 
 from ..utils import lookup_obj, obj_to_proxy_string
+from .masks import save_labels
 
 HELP = "Connect OMERO to the napari image viewer"
 
@@ -42,7 +41,6 @@ def gateway_required(func):
     def _wrapper(self, *args, **kwargs):
         self.client = self.ctx.conn(*args)
         self.gateway = BlitzGateway(client_obj=self.client)
-        print(self.gateway)
         try:
             return func(self, *args, **kwargs)
         finally:
@@ -55,7 +53,6 @@ def gateway_required(func):
 
 
 class NapariControl(BaseControl):
-
     gateway = None
     client = None
 
@@ -78,43 +75,32 @@ class NapariControl(BaseControl):
 
     @gateway_required
     def view(self, args):
-
         if isinstance(args.object, ImageI):
             try:
                 img = lookup_obj(self.gateway, args.object)
             except NameError:
-                self.ctx.die(110, "No such %s: %s" % (type, args.object.id))
+                self.ctx.die(110, f"No such {type}: {args.object.id}")
 
-            self.ctx.out("View image: %s" % img.name)
+            self.ctx.out(f"View image: {img.name}")
 
-            with napari.gui_qt():
-                viewer = napari.Viewer()
+            viewer = napari.Viewer()  # type: ignore
 
-                add_buttons(viewer, img)
+            add_buttons(viewer, img)
 
-                n = time.time()
-                viewer.open(obj_to_proxy_string(args.object), plugin="omero")
-                set_dims_defaults(viewer, img)
-                set_dims_labels(viewer, img)
-                print(f"time to load_omero_image(): {time.time() - n:.4f} s")
+            viewer.open(
+                f"omero://{obj_to_proxy_string(args.object)}",
+                plugin="napari-omero",
+            )
+            set_dims_defaults(viewer, img)
+            set_dims_labels(viewer, img)
 
-                # add 'conn' and 'omero_image' to the viewer console
-                viewer.update_console(
-                    {"conn": self.gateway, "omero_image": img}
-                )
-
-
-# Register napari_omero as an OMERO CLI plugin
-if __name__ == "__main__":
-    cli = CLI()
-    cli.register("napari", NapariControl, HELP)
-    cli.invoke(sys.argv[1:])
+            # add 'conn' and 'omero_image' to the viewer console
+            viewer.update_console({"conn": self.gateway, "omero_image": img})
+            napari.run()  # type: ignore
 
 
 def add_buttons(viewer, img):
-    """
-    Add custom buttons to the viewer UI
-    """
+    """Add custom buttons to the viewer UI."""
 
     def handle_save_rois():
         save_rois(viewer, img)
@@ -126,7 +112,7 @@ def add_buttons(viewer, img):
 
 def get_data(img, c=0):
     """
-    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x)
+    Get 4D numpy array of pixel data, shape = (size_t, size_z, size_y, size_x).
 
     :param  img:        omero.gateway.ImageWrapper
     :c      int:        Channel index
@@ -139,11 +125,8 @@ def get_data(img, c=0):
     plane_gen = pixels.getPlanes(zct_list)
 
     t_stacks = []
-    for t in range(size_t):
-        z_stack = []
-        for z in range(size_z):
-            print("plane c:%s, t:%s, z:%s" % (c, t, z))
-            z_stack.append(next(plane_gen))
+    for _ in range(size_t):
+        z_stack = [next(plane_gen) for _ in range(size_z)]
         t_stacks.append(numpy.array(z_stack))
     return numpy.array(t_stacks)
 
@@ -151,7 +134,7 @@ def get_data(img, c=0):
 def set_dims_labels(viewer, image):
     """
     Set labels on napari viewer dims, based on
-    dimensions of OMERO image
+    dimensions of OMERO image.
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
@@ -166,7 +149,7 @@ def set_dims_labels(viewer, image):
 def set_dims_defaults(viewer, image):
     """
     Set Z/T slider index on napari viewer, according
-    to default Z/T indecies of the OMERO image
+    to default Z/T indecies of the OMERO image.
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
@@ -182,7 +165,7 @@ def save_rois(viewer, image):
     """
     Usage: In napari, open console...
     >>> from napari_omero import *
-    >>> save_rois(viewer, omero_image)
+    >>> save_rois(viewer, omero_image).
     """
     conn = image._conn
 
@@ -191,22 +174,21 @@ def save_rois(viewer, image):
             for p in layer.data:
                 point = create_omero_point(p)
                 roi = create_roi(conn, image.id, [point])
-                print("Created ROI: %s" % roi.id.val)
+                print(f"Created ROI: {roi.id.val}")
         elif type(layer) == shapes_layer:
             if len(layer.data) == 0 or len(layer.shape_type) == 0:
                 continue
             shape_types = layer.shape_type
             if isinstance(shape_types, str):
-                shape_types = [
-                    layer.shape_type for t in range(len(layer.data))
-                ]
+                shape_types = [layer.shape_type for _ in range(len(layer.data))]
             for shape_type, data in zip(shape_types, layer.data):
                 shape = create_omero_shape(shape_type, data)
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
-                    print("Created ROI: %s" % roi.id.val)
+                    print(f"Created ROI: {roi.id.val}")
         elif type(layer) == labels_layer:
-            print("Saving Labels not supported")
+            print("Saving Labels...")
+            save_labels(layer, image)
 
 
 def get_x(coordinate):
@@ -247,12 +229,12 @@ def create_omero_shape(shape_type, data):
         shape.y1 = rdouble(get_y(data[0]))
         shape.x2 = rdouble(get_x(data[1]))
         shape.y2 = rdouble(get_y(data[1]))
-    elif shape_type == "path" or shape_type == "polygon":
+    elif shape_type in ["path", "polygon"]:
         shape = PolylineI() if shape_type == "path" else PolygonI()
         # points = "10,20, 50,150, 200,200, 250,75"
         points = [f"{get_x(d)},{get_y(d)}" for d in data]
         shape.points = rstring(", ".join(points))
-    elif shape_type == "rectangle" or shape_type == "ellipse":
+    elif shape_type in ["rectangle", "ellipse"]:
         # corners go anti-clockwise starting top-left
         x1 = get_x(data[0])
         x2 = get_x(data[1])
@@ -274,8 +256,8 @@ def create_omero_shape(shape_type, data):
             else:
                 # Rotated Rectangle - save as Polygon
                 shape = PolygonI()
-                points = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
-                shape.points = rstring(points)
+                points_str = f"{x1},{y1}, {x2},{y2}, {x3},{y3}, {x4},{y4}"
+                shape.points = rstring(points_str)
         elif shape_type == "ellipse":
             # Ellipse not rotated (ignore floating point rouding)
             if int(x1) == int(x2):
@@ -308,7 +290,7 @@ class NonCachedPixelsWrapper(PixelsWrapper):
 
     def _prepareRawPixelsStore(self):
         """
-        Creates RawPixelsStore and sets the id etc
+        Creates RawPixelsStore and sets the id etc.
 
         This overrides the superclass behaviour to make sure that
         we don't re-use RawPixelStore in multiple processes since
@@ -324,3 +306,10 @@ class NonCachedPixelsWrapper(PixelsWrapper):
 omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
 # Update the BlitzGateway to use our NonCachedPixelsWrapper
 omero.gateway.refreshWrappers()
+
+
+if __name__ == "__main__":
+    # Register napari_omero as an OMERO CLI plugin
+    cli = CLI()
+    cli.register("napari", NapariControl, HELP)
+    cli.invoke(sys.argv[1:])

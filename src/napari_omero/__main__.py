@@ -1,20 +1,15 @@
-from napari import gui_qt, Viewer  # type: ignore  # getting no attribute err
-from qtpy.QtCore import Qt
-
-from .widgets import OMEROWidget
-
-
 def main():
-    with gui_qt():
-        viewer = Viewer()
-        m = OMEROWidget()
-        dw = viewer.window.add_dock_widget(m, area="right")
-        # TODO: figure out dynamic geometry
-        viewer.window._qt_window.setGeometry(300, 200, 1280, 720)
-        viewer.window._qt_window.resizeDocks([dw], [390], Qt.Horizontal)
+    import napari
+    from qtpy.QtCore import Qt
+
+    viewer = napari.Viewer()  # type: ignore
+    dw, _ = viewer.window.add_plugin_dock_widget("napari-omero", "OMERO Browser")
+    # TODO: figure out dynamic geometry
+    viewer.window._qt_window.resizeDocks([dw], [390], Qt.Orientation.Horizontal)
+    napari.run()  # type: ignore
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     sys.exit(main())

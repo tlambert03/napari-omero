@@ -1,10 +1,11 @@
 # napari-omero
 
-[![License](https://img.shields.io/github/license/tlambert03/napari-omero)](LICENSE)
-[![Version](https://img.shields.io/pypi/v/napari-omero.svg)](https://pypi.python.org/pypi/napari-omero)
-[![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg)](https://python.org)
-[![CI](https://github.com/tlambert03/napari-omero/workflows/CI/badge.svg)](https://github.com/tlambert03/napari-omero/actions)
-<!-- [![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero) -->
+[![License](https://img.shields.io/pypi/l/napari-omero.svg?color=green)](https://github.com/tlambert03/napari-omero/raw/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/napari-omero.svg?color=green)](https://pypi.org/project/napari-omero)
+[![Python Version](https://img.shields.io/pypi/pyversions/napari-omero.svg?color=green)](https://python.org)
+[![CI](https://github.com/tlambert03/napari-omero/actions/workflows/ci.yml/badge.svg)](https://github.com/tlambert03/napari-omero/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tlambert03/napari-omero/branch/main/graph/badge.svg)](https://codecov.io/gh/tlambert03/napari-omero)
+[![conda-forge](https://img.shields.io/conda/vn/conda-forge/napari-omero)](https://anaconda.org/conda-forge/napari-omero)
 
 This package provides interoperability between the
 [OMERO](https://www.openmicroscopy.org/omero/) image management platform, and
@@ -14,7 +15,7 @@ viewer for python.
 It provides a GUI interface for browsing an OMERO instance from within napari,
 as well as command line interface extensions for both OMERO and napari CLIs.
 
-![demo](demo.gif)
+![demo](https://github.com/tlambert03/napari-omero/blob/master/demo.gif?raw=true)
 
 ## Features
 
@@ -31,31 +32,31 @@ To launch napari with the OMERO browser added, [install](#installation) this
 package and run:
 
 ```bash
-napari_omero
+napari-omero
 ```
 
 The OMERO browser widget can also be manually added to the napari viewer:
 
 ```python
 import napari
-from napari_omero import OMEROWidget
 
-with napari.gui_qt():
-    viewer = napari.Viewer()
-    viewer.window.add_dock_widget(OMEROWidget(), area="right")
+viewer = napari.Viewer()
+viewer.window.add_plugin_dock_widget('napari-omero')
+
+napari.run()
 ```
 
 ### as a napari plugin
 
 This package provides a napari reader plugin that accepts OMERO resources as
-"proxy strings" (e.g. `Image:<ID>`) or as [OMERO webclient
+"proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("Image:1", plugin="omero")
+viewer.open("omero://Image:1")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
 viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
@@ -64,7 +65,7 @@ viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
 these will also work on the napari command line interface, e.g.:
 
 ```bash
-napari Image:1
+napari omero://Image:1
 # or
 napari http://yourdomain.example.org/omero/webclient/?show=image-314
 ```
@@ -82,16 +83,26 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.6 or 3.7 due to `omero-py` Ice dependencies.
-It's easiest to install `omero-py` from conda, so the recommended install
-procedure is to first create a new conda environment (here called "`omero`")
-with `omero-py` installed from the `ome` channel, and then use `pip` to
-install `napari-omero` (until we have a conda package available).
+Requires python 3.7 - 3.10.
+
+### from conda
+
+It's easiest to install `omero-py` from conda, so the recommended procedure
+is to install everything from conda, using the `conda-forge` channel
+
+```python
+conda install -c conda-forge napari-omero
+```
+
+### from pip
+
+`napari-omero` itself can be installed from pip, but you will still need
+`omero-py`
 
 ```sh
-conda create -n omero -c ome python=3.7 omero-py
+conda create -n omero -c conda-forge python=3.9 omero-py
 conda activate omero
-pip install napari-omero
+pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
 ```
 
 ## issues
@@ -104,10 +115,12 @@ pip install napari-omero
 - remote loading can be very slow still... though this is not strictly an issue
   of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
   fetching time can be significant.  Plans for [asynchronous
-  rendering](https://napari.org/docs/explanations/rendering.html) in napari and
+  rendering](https://napari.org/guides/stable/rendering.html) in
+  napari and
   [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
   may eventually improve the subjective performance... but remote data loading
   will likely always be a limitation here.
+  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`.
 
 ## contributing
 
@@ -122,6 +135,9 @@ cd napari-omero
 conda env create -f environment.yml
 # activate the new env
 conda activate napari-omero
+
+# install in editable mode
+pip install -e .
 ```
 
 To maintain good code quality, this repo uses

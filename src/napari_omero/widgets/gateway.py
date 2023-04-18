@@ -1,14 +1,17 @@
 import atexit
-from typing import Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Generator, Optional, Tuple
 
-from napari.qt.threading import WorkerBase, create_worker
-from omero.clients import BaseClient
-from omero.gateway import BlitzGateway, PixelsWrapper
 import omero.gateway
+from omero.clients import BaseClient
+from omero.gateway import BlitzGateway, BlitzObjectWrapper, PixelsWrapper
 from omero.util.sessions import SessionsStore
 from qtpy.QtCore import QObject, Signal
 
 SessionStats = Tuple[BaseClient, str, int, int]
+
+
+if TYPE_CHECKING:
+    from napari.qt.threading import WorkerBase
 
 
 class QGateWay(QObject):
@@ -28,8 +31,8 @@ class QGateWay(QObject):
         self.store = SessionsStore()
         self.destroyed.connect(self.close)
         atexit.register(self.close)
-        self.worker: Optional[WorkerBase] = None
-        self._next_worker: Optional[WorkerBase] = None
+        self.worker: Optional["WorkerBase"] = None
+        self._next_worker: Optional["WorkerBase"] = None
 
     @property
     def conn(self):
@@ -95,9 +98,9 @@ class QGateWay(QObject):
         else:
             self.worker = None
 
-    def _submit(
-        self, func: Callable, *args, _wait=True, **kwargs
-    ) -> WorkerBase:
+    def _submit(self, func: Callable, *args, _wait=True, **kwargs) -> "WorkerBase":
+        from napari.qt.threading import create_worker
+
         new_worker = create_worker(func, *args, _start_thread=False, **kwargs)
         new_worker.finished.connect(self._start_next_worker)
 
@@ -124,33 +127,23 @@ class QGateWay(QObject):
                 session = self.store.attach(host, username, uuid)
                 return self._on_new_session(session)
             except Exception as e:
-                print(e)
                 self.status.emit("Error")
                 self.error.emit(e)
         return None
 
-    def create_session(
-        self, host: str, port: str, username: str, password: str
-    ):
-        return self._submit(
-            self._create_session, host, port, username, password
-        )
+    def create_session(self, host: str, port: str, username: str, password: str):
+        return self._submit(self._create_session, host, port, username, password)
 
-    def _create_session(
-        self, host: str, port: str, username: str, password: str
-    ):
+    def _create_session(self, host: str, port: str, username: str, password: str):
         self.status.emit("connecting...")
         try:
-            session = self.store.create(
-                username,
-                password,
-                {
-                    "omero.host": host,
-                    "omero.port": port,
-                    "omero.user": username,
-                    "omero.timeout": 2000 * 60,
-                },
-            )
+            props = {
+                "omero.host": host,
+                "omero.user": username,
+            }
+            if port:
+                props["omero.port"] = port
+            session = self.store.create(username, password, props)
             return self._on_new_session(session)
         except Exception as e:
             self.status.emit("Error")
@@ -169,13 +162,20 @@ class QGateWay(QObject):
         self.status.emit("")
         return self.conn
 
+    def getObjects(
+        self, name: str, **kwargs
+    ) -> Generator[BlitzObjectWrapper, None, None]:
+        if not self.isConnected():
+            raise RuntimeError("No connection!")
+        yield from self.conn.getObjects(name, **kwargs)
+
 
 class NonCachedPixelsWrapper(PixelsWrapper):
     """Extend gateway.PixelWrapper to override _prepareRawPixelsStore."""
 
     def _prepareRawPixelsStore(self):
         """
-        Creates RawPixelsStore and sets the id etc
+        Creates RawPixelsStore and sets the id etc.
 
         This overrides the superclass behaviour to make sure that
         we don't re-use RawPixelStore in multiple processes since

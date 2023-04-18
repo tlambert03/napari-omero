@@ -1,0 +1,17 @@
+name: napari-omero
+schema_version: 0.1.0
+contributions:
+  commands:
+  - id: napari-omero.widget
+    title: Open OMERO widget
+    python_name: napari_omero.widgets.main:OMEROWidget
+  - id: napari-omero.get_reader
+    title: OMERO reader
+    python_name: napari_omero.plugins._napari:napari_get_reader
+  readers:
+  - command: napari-omero.get_reader
+    filename_patterns:
+    - omero://*
+  widgets:
+  - command: napari-omero.widget
+    display_name: OMERO Browser

@@ -1,10 +1,11 @@
-from qtpy.QtWidgets import QListWidget, QListWidgetItem
-from qtpy.QtGui import QPixmap, QImage, QIcon
-from qtpy.QtCore import QSize, Qt
-from .gateway import QGateWay
-from .tree_model import OMEROTreeItem
 from typing import Dict, Optional
 
+from qtpy.QtCore import QSize, Qt
+from qtpy.QtGui import QIcon, QImage, QPixmap
+from qtpy.QtWidgets import QListWidget, QListWidgetItem
+
+from .gateway import QGateWay
+from .tree_model import OMEROTreeItem
 
 THUMBSIZE = 96
 
@@ -44,10 +45,11 @@ class ThumbGrid(QListWidget):
             self.select_image()
 
     def select_image(self):
-        wrapper = self._current_item.wrapper
-        item = self._item_map.get(wrapper.getId())
-        if item:
-            self.setCurrentItem(item)
+        if self._current_item is not None:
+            wrapper = self._current_item.wrapper
+            item = self._item_map.get(wrapper.getId())
+            if item:
+                self.setCurrentItem(item)
 
     def set_dataset(self, item):
         if not self.gateway.isConnected():
@@ -62,9 +64,7 @@ class ThumbGrid(QListWidget):
             self.clear()
             self._item_map.clear()
             for img in item.wrapper.listChildren():
-                for byte in conn.getThumbnailSet(
-                    [img.getId()], THUMBSIZE
-                ).values():
+                for byte in conn.getThumbnailSet([img.getId()], THUMBSIZE).values():
                     yield byte, img
 
         return self.gateway._submit(
@@ -81,11 +81,13 @@ class ThumbGrid(QListWidget):
         icon = QIcon(QPixmap.fromImage(img))
         name = wrapper.getName()
         if len(name) > 18:
-            name = name[:15] + "..."
+            name = f"{name[:15]}..."
         item = QListWidgetItem(icon, name)
-        item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
+        item.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
+        )
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
-        if self._current_item.isImage():
+        if self._current_item is not None and self._current_item.isImage():
             self.select_image()

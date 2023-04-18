@@ -7,9 +7,10 @@ from qtpy.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QWidget,
     QVBoxLayout,
+    QWidget,
 )
+
 from .gateway import QGateWay
 
 
@@ -21,6 +22,7 @@ class LoginForm(QDialog):
         self.gateway.status.connect(self.status.setText)
         self.gateway.error.connect(self._on_gateway_error)
         self.gateway.connected.connect(self.hide)
+        self.gateway.disconnected.connect(self.show)
         self.gateway.try_restore_session()
 
     def setup_ui(self):
