@@ -17,7 +17,7 @@ jobs:
     # included in the sdist (unless explicitly excluded)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: pipx run check-manifest
 
   test:
@@ -38,7 +38,7 @@ jobs:
             backend: pyqt5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
@@ -80,7 +80,7 @@ jobs:
     if: github.repository == 'tlambert03/napari-omero' && contains(github.ref, 'tags')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
