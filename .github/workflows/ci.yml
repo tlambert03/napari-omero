@@ -60,7 +60,7 @@ jobs:
           python -m pip install --upgrade setuptools tox tox-conda tox-gh-actions
 
       - name: Test with tox
-        uses: aganders3/headless-gui@v1.2
+        uses: aganders3/headless-gui@v2.1
         with:
           shell: bash -el {0}
           run: python -m tox
