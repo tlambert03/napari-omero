@@ -71,7 +71,7 @@ jobs:
           BACKEND: ${{ matrix.backend }}
 
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   deploy:
     # this will run when you have tagged a commit, starting with "v*"
