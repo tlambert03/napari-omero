@@ -67,9 +67,6 @@ class OMEROWidget(QWidget):
         wrapper = self.thumb_grid.selectedItems()[0].wrapper
         index: QModelIndex = self.model._wrapper_map.get(wrapper.getId())
         if index:
-            # avoid loading the same image twice
-            if self.tree.selectionModel().isSelected(index):
-                return
             self.tree.selectionModel().select(
                 index,
                 QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows,
