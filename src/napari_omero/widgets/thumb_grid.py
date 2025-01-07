@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon, QImage, QPixmap
@@ -22,7 +22,7 @@ class ThumbGrid(QListWidget):
         self.setSpacing(4)
         self._current_dataset: Optional[OMEROTreeItem] = None
         self._current_item: Optional[OMEROTreeItem] = None
-        self._item_map: Dict[str, QListWidgetItem] = {}
+        self._item_map: dict[str, QListWidgetItem] = {}
 
     def set_item(self, item: OMEROTreeItem):
         if item == self._current_item:
@@ -89,5 +89,8 @@ class ThumbGrid(QListWidget):
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
-        if self._current_item is not None and self._current_item.isImage():
+        if (
+            isinstance(self._current_item, OMEROTreeItem)
+            and self._current_item.isImage()
+        ):
             self.select_image()

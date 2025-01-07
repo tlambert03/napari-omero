@@ -83,14 +83,16 @@ omero napari view Image:1
 
 ## installation
 
-Requires python 3.7 - 3.10.
+While this package supports anything above python 3.9,
+In practice, python support is limited by `omero-py` and `zeroc-ice`,
+compatibility, which is limited to python <=3.10 at the time of writing.
 
 ### from conda
 
 It's easiest to install `omero-py` from conda, so the recommended procedure
 is to install everything from conda, using the `conda-forge` channel
 
-```python
+```sh
 conda install -c conda-forge napari-omero
 ```
 
@@ -100,7 +102,7 @@ conda install -c conda-forge napari-omero
 `omero-py`
 
 ```sh
-conda create -n omero -c conda-forge python=3.9 omero-py
+conda create -n omero -c conda-forge python=3.10 omero-py
 conda activate omero
 pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
 ```
@@ -132,19 +134,19 @@ git clone https://github.com/tlambert03/napari-omero.git
 # change into the new directory
 cd napari-omero
 # create conda environment
-conda env create -f environment.yml
+conda env create -n napari-omero python=3.10 omero-py
 # activate the new env
 conda activate napari-omero
 
-# install in editable mode
-pip install -e .
+# install in editable mode with dev dependencies
+pip install -e ".[dev]"      # quotes are needed on zsh
 ```
 
 To maintain good code quality, this repo uses
-[flake8](https://gitlab.com/pycqa/flake8),
-[mypy](https://github.com/python/mypy), and
-[black](https://github.com/psf/black).  To enforce code quality when you commit
-code, you can install pre-commit
+[ruff](https://github.com/astral-sh/ruff),
+[mypy](https://github.com/python/mypy).
+
+To enforce code quality when you commit code, you can install pre-commit
 
 ```bash
 # install pre-commit which will run code checks prior to commits
