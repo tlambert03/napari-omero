@@ -1,11 +1,12 @@
 import atexit
 from typing import TYPE_CHECKING, Callable, Generator, Optional, Tuple
 
+from qtpy.QtCore import QObject, Signal
+
 import omero.gateway
 from omero.clients import BaseClient
 from omero.gateway import BlitzGateway, BlitzObjectWrapper, PixelsWrapper
 from omero.util.sessions import SessionsStore
-from qtpy.QtCore import QObject, Signal
 
 SessionStats = Tuple[BaseClient, str, int, int]
 
@@ -31,8 +32,8 @@ class QGateWay(QObject):
         self.store = SessionsStore()
         self.destroyed.connect(self.close)
         atexit.register(self.close)
-        self.worker: Optional["WorkerBase"] = None
-        self._next_worker: Optional["WorkerBase"] = None
+        self.worker: Optional[WorkerBase] = None
+        self._next_worker: Optional[WorkerBase] = None
 
     @property
     def conn(self):

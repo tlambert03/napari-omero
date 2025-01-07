@@ -1,9 +1,10 @@
 from typing import List
 
 import numpy as np
+from omero_rois import mask_from_binary_image
+
 from omero.gateway import ImageWrapper
 from omero.model import RoiI
-from omero_rois import mask_from_binary_image
 
 
 def create_roi(image: ImageWrapper, shapes) -> RoiI:

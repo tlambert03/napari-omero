@@ -3,10 +3,11 @@ from typing import Dict, List, Optional
 import dask.array as da
 from dask.delayed import delayed
 from napari.types import LayerData
+from vispy.color import Colormap
+
 from omero.cli import ProxyStringType
 from omero.gateway import BlitzGateway, ImageWrapper
 from omero.model import IObject
-from vispy.color import Colormap
 
 from ..utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from ..widgets import QGateWay

@@ -1,4 +1,3 @@
-from omero.gateway import BlitzObjectWrapper, ExperimenterGroupWrapper
 from qtpy.QtCore import (
     QCoreApplication,
     QItemSelection,
@@ -17,6 +16,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 from superqt.utils import signals_blocked
+
+from omero.gateway import BlitzObjectWrapper, ExperimenterGroupWrapper
 
 from .gateway import QGateWay
 from .login import LoginForm
