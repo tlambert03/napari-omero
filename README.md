@@ -158,3 +158,12 @@ Moore](https://github.com/will-moore).
 
 The napari reader plugin and GUI browser was created by [Talley
 Lambert](https://github.com/tlambert03/)
+
+## release
+
+To psuh a release to PyPI, one of the maintainers needs to do, for example:
+```sh
+git tag -a v0.2.0 -m v0.2.0
+git push upstream --follow-tags
+```
+Then, the workflow should handle everything!
