@@ -20,6 +20,8 @@ license = { text = "GPL-2.0-or-later" }
 authors = [
     { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
     { name = "Will Moore" },
+    { name = "Johannes Soltwedel", email = "johannes_richard.soltwedel@tu-dresden.de}
+    { name = "Peter Sobolewski}
 ]
 keywords = ["OMERO.CLI", "plugin", "napari", "napari-plugin"]
 classifiers = [
