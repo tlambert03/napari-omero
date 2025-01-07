@@ -49,7 +49,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 # add your package dependencies here
-dependencies = ["napari>=0.4.13", "omero-py", "omero-rois"]
+dependencies = ["napari>=0.4.13", "omero-py", "omero-rois", "qtpy"]
 
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 # "extras" (e.g. for `pip install .[test]`)
