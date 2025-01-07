@@ -132,16 +132,16 @@ git clone https://github.com/tlambert03/napari-omero.git
 # change into the new directory
 cd napari-omero
 # create conda environment
-conda env create -f environment.yml
+conda env create -n napari-omero python=3.10 omero-py
 # activate the new env
 conda activate napari-omero
 
 # install in editable mode
-pip install -e .
+pip install -e ".[all, dev, test]"      # quotes are needed on zsh
 ```
 
 To maintain good code quality, this repo uses
-[flake8](https://gitlab.com/pycqa/flake8),
+[ruff](https://github.com/astral-sh/ruff),
 [mypy](https://github.com/python/mypy), and
 [black](https://github.com/psf/black).  To enforce code quality when you commit
 code, you can install pre-commit
