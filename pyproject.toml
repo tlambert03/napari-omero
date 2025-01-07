@@ -7,7 +7,8 @@ build-backend = "hatchling.build"
 source = "vcs"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/napari_omero", "src/omero/plugins"]
+only-include = ["src"]
+sources = ["src"]
 
 # https://peps.python.org/pep-0621/
 [project]
@@ -15,15 +16,17 @@ name = "napari-omero"
 dynamic = ["version"]
 description = "napari/OMERO interoperability"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = { text = "GPL-2.0-or-later" }
 authors = [
     { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
-    { name = "Will Moore" },
+    { name = "Will Moore", email = "w.moore@dundee.ac.uk" },
+    { name = "Johannes Soltwedel", email = "johannes_richard.soltwedel@tu-dresden.de" },
+    { name = "Peter Sobolewski", email = "76622105+psobolewskiPhD@users.noreply.github.com" },
 ]
 keywords = ["OMERO.CLI", "plugin", "napari", "napari-plugin"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: X11 Applications :: Qt",
     "Framework :: napari",
     "Intended Audience :: Developers",
@@ -33,34 +36,27 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Visualization",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
-    # "License :: OSI Approved :: BSD License",
-    # "Typing :: Typed",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Typing :: Typed",
 ]
 # add your package dependencies here
-dependencies = [
-    "napari>=0.4.13",
-    "omero-py",
-    "omero-rois",
-    "importlib-metadata; python_version < '3.8'",
-]
+dependencies = ["napari>=0.4.13", "omero-py", "omero-rois"]
 
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 # "extras" (e.g. for `pip install .[test]`)
 [project.optional-dependencies]
 all = ["napari[all]"]
-# add dependencies used for testing here
 test = [
     "pytest",
     "pytest-cov",
@@ -68,13 +64,13 @@ test = [
     "pytest-regressions",
     "pywin32; sys_platform == 'win32'",
 ]
-# add anything else you like to have in your dev environment here
 dev = [
-    "black",
+    "napari-omero[all, test]",
     "ipython",
     "mypy",
-    "pdbpp",   # https://github.com/pdbpp/pdbpp
-    "rich",    # https://github.com/Textualize/rich
+    "pdbpp",
+    "pre-commit",
+    "rich",
     "ruff",
 ]
 
@@ -91,34 +87,41 @@ napari-omero = "napari_omero.__main__:main"
 [project.entry-points."napari.manifest"]
 napari-omero = "napari_omero:napari.yaml"
 
-# https://beta.ruff.rs/docs/rules/
+# https://docs.astral.sh/ruff
 [tool.ruff]
 line-length = 88
-target-version = "py37"
+target-version = "py39"
+src = ["src"]
+
+# https://docs.astral.sh/ruff/rules
+[tool.ruff.lint]
+pydocstyle = { convention = "numpy" }
 select = [
     "E",    # style errors
     "W",    # style warnings
     "F",    # flakes
+    "D",    # pydocstyle
+    "D417", # Missing argument descriptions in Docstrings
     "I",    # isort
     "UP",   # pyupgrade
+    "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
+    "TC",   # flake8-type-checking
+    "TID",  # flake8-tidy-imports
 ]
 ignore = [
-    "D100", # Missing docstring in public module
-    "D107", # Missing docstring in __init__
-    "D203", # 1 blank line required before class docstring
-    "D212", # Multi-line docstring summary should start at the first line
-    "D213", # Multi-line docstring summary should start at the second line
-    "D401", # First line should be in imperative mood
-    "D413", # Missing blank line after last section
-    "D416", # Section name should end with a colon
+    "D401", # First line should be in imperative mood (remove to opt in)
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["D", "S"]
-"setup.py" = ["D"]
+
+# https://docs.astral.sh/ruff/formatter/
+[tool.ruff.format]
+docstring-code-format = true
+skip-magic-trailing-comma = false # default is false
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
@@ -134,7 +137,7 @@ pretty = true
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
-minversion = "6.0"
+minversion = "7.0"
 testpaths = ["tests"]
 filterwarnings = [
     "error",
@@ -155,6 +158,7 @@ exclude_lines = [
     "except ImportError",
     "\\.\\.\\.",
     "raise NotImplementedError()",
+    "pass",
 ]
 [tool.coverage.run]
 source = ["src"]
