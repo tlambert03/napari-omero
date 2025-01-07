@@ -3,10 +3,13 @@ from functools import wraps
 
 import napari
 import numpy
-import omero.clients
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
 from napari.layers.shapes.shapes import Shapes as shapes_layer
+from qtpy.QtWidgets import QPushButton
+
+import omero.clients
+from napari_omero.utils import lookup_obj, obj_to_proxy_string
 from omero.cli import CLI, BaseControl, ProxyStringType
 from omero.gateway import BlitzGateway, PixelsWrapper
 from omero.model import (
@@ -20,9 +23,7 @@ from omero.model import (
     RoiI,
 )
 from omero.rtypes import rdouble, rint, rstring
-from qtpy.QtWidgets import QPushButton
 
-from ..utils import lookup_obj, obj_to_proxy_string
 from .masks import save_labels
 
 HELP = "Connect OMERO to the napari image viewer"
@@ -31,10 +32,9 @@ VIEW_HELP = "Usage: omero napari view Image:1"
 
 
 def gateway_required(func):
-    """
-    Decorator which initializes a client (self.client),
-    a BlitzGateway (self.gateway), and makes sure that
-    all services of the Blitzgateway are closed again.
+    """Decorator which initializes a client and BlitzGateway.
+
+    makes sure that all services of the Blitzgateway are closed again.
     """
 
     @wraps(func)
@@ -132,9 +132,7 @@ def get_data(img, c=0):
 
 
 def set_dims_labels(viewer, image):
-    """
-    Set labels on napari viewer dims, based on
-    dimensions of OMERO image.
+    """Set labels on napari viewer dims, based on dimensions of OMERO image.
 
     :param  viewer:     napari viewer instance
     :param  image:      omero.gateway.ImageWrapper
@@ -147,7 +145,8 @@ def set_dims_labels(viewer, image):
 
 
 def set_dims_defaults(viewer, image):
-    """
+    """Set default Z/T index on napari viewer.
+
     Set Z/T slider index on napari viewer, according
     to default Z/T indecies of the OMERO image.
 
@@ -162,7 +161,8 @@ def set_dims_defaults(viewer, image):
 
 
 def save_rois(viewer, image):
-    """
+    """Save napari ROIs to OMERO.
+
     Usage: In napari, open console...
     >>> from napari_omero import *
     >>> save_rois(viewer, omero_image).
@@ -170,12 +170,12 @@ def save_rois(viewer, image):
     conn = image._conn
 
     for layer in viewer.layers:
-        if type(layer) == points_layer:
+        if type(layer) is points_layer:
             for p in layer.data:
                 point = create_omero_point(p)
                 roi = create_roi(conn, image.id, [point])
                 print(f"Created ROI: {roi.id.val}")
-        elif type(layer) == shapes_layer:
+        elif type(layer) is shapes_layer:
             if len(layer.data) == 0 or len(layer.shape_type) == 0:
                 continue
             shape_types = layer.shape_type
@@ -186,7 +186,7 @@ def save_rois(viewer, image):
                 if shape is not None:
                     roi = create_roi(conn, image.id, [shape])
                     print(f"Created ROI: {roi.id.val}")
-        elif type(layer) == labels_layer:
+        elif type(layer) is labels_layer:
             print("Saving Labels...")
             save_labels(layer, image)
 

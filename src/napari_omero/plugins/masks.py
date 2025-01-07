@@ -1,9 +1,8 @@
-from typing import List
-
 import numpy as np
+from omero_rois import mask_from_binary_image
+
 from omero.gateway import ImageWrapper
 from omero.model import RoiI
-from omero_rois import mask_from_binary_image
 
 
 def create_roi(image: ImageWrapper, shapes) -> RoiI:
@@ -17,7 +16,7 @@ def create_roi(image: ImageWrapper, shapes) -> RoiI:
     return updateService.saveAndReturnObject(roi)
 
 
-def save_labels(layer, image: ImageWrapper) -> List[RoiI]:
+def save_labels(layer, image: ImageWrapper) -> list[RoiI]:
     """
     Saves masks from a 5D image (no C dimension).
 

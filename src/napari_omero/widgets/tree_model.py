@@ -1,9 +1,10 @@
 import itertools
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
 from qtpy.QtCore import QModelIndex, Qt
 from qtpy.QtGui import QStandardItem, QStandardItemModel
+
+from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
 
 from .gateway import QGateWay
 
@@ -77,7 +78,7 @@ class OMEROTreeModel(QStandardItemModel):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
         self.gateway = gateway
-        self._wrapper_map: Dict[BlitzObjectWrapper, QModelIndex] = {}
+        self._wrapper_map: dict[BlitzObjectWrapper, QModelIndex] = {}
 
     def submit_get_projects(self, *_, owner=None, group=None):
         root = self.invisibleRootItem()
