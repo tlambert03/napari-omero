@@ -144,7 +144,7 @@ pip install -e ".[dev]"      # quotes are needed on zsh
 
 To maintain good code quality, this repo uses
 [ruff](https://github.com/astral-sh/ruff),
-[mypy](https://github.com/python/mypy), and
+[mypy](https://github.com/python/mypy).
 
 To enforce code quality when you commit code, you can install pre-commit
 
