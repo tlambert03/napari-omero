@@ -64,24 +64,31 @@ jobs:
     # this will run when you have tagged a commit, starting with "v*"
     # and requires that you have put your twine API key in your
     needs: [test]
-    if: github.repository == 'tlambert03/napari-omero' && contains(github.ref, 'tags')
+    if: success() && startsWith(github.ref, 'refs/tags/') && github.repository == 'tlambert03/napari-omero'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Install dependencies
+
+      - name: 👷 Build
         run: |
-          python -m pip install --upgrade pip
-          pip install -U build twine
-      - name: Build and publish
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.pypi_password }}
-        run: |
-          git tag
+          python -m pip install build
           python -m build
-          twine check dist/*
-          twine upload dist/*
+
+      - name: 🚢 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: './dist/*'
