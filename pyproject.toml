@@ -22,7 +22,7 @@ authors = [
     { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
     { name = "Will Moore", email = "w.moore@dundee.ac.uk" },
     { name = "Johannes Soltwedel", email = "johannes_richard.soltwedel@tu-dresden.de" },
-    { name = "Peter Sobolewski", email = "76622105+psobolewskiPhD@users.noreply.github.com" },
+    { name = "Peter Sobolewski" },
 ]
 keywords = ["OMERO.CLI", "plugin", "napari", "napari-plugin"]
 classifiers = [
@@ -39,8 +39,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -112,7 +110,12 @@ select = [
     "TID",  # flake8-tidy-imports
 ]
 ignore = [
-    "D401", # First line should be in imperative mood (remove to opt in)
+    "D401", # First line should be in imperative mood
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
 ]
 
 [tool.ruff.lint.per-file-ignores]
