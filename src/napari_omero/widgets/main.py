@@ -191,6 +191,12 @@ class OMEROWidget(QWidget):
         self.thumb_grid.set_item(item)
 
         if item.isImage():
+            # avoid loading the same image twice
+            if (
+                self.thumb_grid.currentItem()
+                and self.thumb_grid.currentItem().wrapper == item.wrapper
+            ):
+                return
             QCoreApplication.processEvents()
             self.load_image(item.wrapper)
 
