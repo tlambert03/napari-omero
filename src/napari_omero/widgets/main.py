@@ -83,6 +83,7 @@ class OMEROWidget(QWidget):
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.thumb_grid)
         self.gateway.connected.connect(self._on_connect)
+        self.gateway.disconnected.connect(self._on_disconnect)
         self.disconnect_button.clicked.connect(self._on_disconnect)
 
     @property
