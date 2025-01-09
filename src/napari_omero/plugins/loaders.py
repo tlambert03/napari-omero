@@ -79,9 +79,15 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     for ch in channels:
         # use current rendering settings from OMERO
         color = ch.getColor().getHtml()
-        # if the colormap exists in napari, use it
-        # otherwise, create a custom colormap
-        colors.append(ensure_colormap("#" + color))
+        # work around a napari bug https://github.com/napari/napari/issues/7504
+        if color == "000000":
+            colors.append(ensure_colormap("gray_r"))
+        if color == "FFFFFF":
+            colors.append(ensure_colormap("gray"))
+        else:
+            # if the colormap exists in napari, use it
+            # otherwise, create a custom colormap
+            colors.append(ensure_colormap("#" + color))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
