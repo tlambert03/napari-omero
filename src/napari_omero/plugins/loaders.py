@@ -3,7 +3,7 @@ from typing import Optional
 import dask.array as da
 from dask.delayed import delayed
 from napari.types import LayerData
-from vispy.color import Colormap
+from napari.utils.colormaps import ensure_colormap
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
@@ -78,9 +78,10 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     colors = []
     for ch in channels:
         # use current rendering settings from OMERO
-        color = ch.getColor().getRGB()
-        color = [r / 256 for r in color]
-        colors.append(Colormap([[0, 0, 0], color]))
+        color = ch.getColor().getHtml()
+        # if the colormap exists in napari, use it
+        # otherwise, create a custom colormap
+        colors.append(ensure_colormap("#" + color))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
