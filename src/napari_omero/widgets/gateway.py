@@ -103,11 +103,14 @@ class QGateWay(QObject):
                 self.conn_watchdog_worker = None
                 return
 
-    def _check_connection(self, timeout: int = 5):
+    def _check_connection(self, timeout: int = 2):
+        # Function to check if a connection can be established to the server
         import socket
         try:
             # Attempt to create a socket connection to the server
-            with socket.create_connection(self.host, timeout=timeout) as sock:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
+                s.connect((self._host, int(self._port)))
                 return True
         except (socket.timeout, socket.error):
             return False
