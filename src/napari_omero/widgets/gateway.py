@@ -95,11 +95,12 @@ class QGateWay(QObject):
         return self.store.get_current()
 
     def _connection_watchdog(self):
+        # Function to be executed in thread to check connection status regularly
         import time
         while True:
             connected = self._check_connection(timeout=self._connection_watchdog_timout)
             if not connected:
-                self.gateway.disconnected.emit()
+                self.disconnected.emit()
                 self.conn_watchdog_worker = None
                 self.status.emit("Error: Connection timed out.")
                 return
