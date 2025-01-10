@@ -102,6 +102,8 @@ class QGateWay(QObject):
                 self.gateway.disconnected.emit()
                 self.conn_watchdog_worker = None
                 return
+            
+            time.sleep(self._connection_watchdog_timout)
 
     def _check_connection(self, timeout: int = 2):
         # Function to check if a connection can be established to the server
