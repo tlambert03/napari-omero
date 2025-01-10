@@ -172,6 +172,7 @@ class QGateWay(QObject):
             self.error.emit(e)
 
     def _on_new_session(self, session: SessionStats):
+        from napari.qt.threading import create_worker
         client = session[0]
         if not client:
             return
@@ -182,6 +183,9 @@ class QGateWay(QObject):
 
         self.connected.emit(self.conn)
         self.status.emit("")
+
+        worker_watchdog = create_worker(self._connection_watchdog)
+        worker_watchdog.start()
         return self.conn
 
     def getObjects(
