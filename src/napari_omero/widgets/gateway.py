@@ -97,6 +97,7 @@ class QGateWay(QObject):
     def _connection_watchdog(self):
         # Function to be executed in thread to check connection status regularly
         import time
+
         while True:
             connected = self._check_connection(timeout=self._connection_watchdog_timout)
             if not connected:
@@ -104,19 +105,20 @@ class QGateWay(QObject):
                 self.conn_watchdog_worker = None
                 self.status.emit("Error: Connection timed out.")
                 return
-            
+
             time.sleep(self._connection_watchdog_timout)
 
     def _check_connection(self, timeout: int = 2):
         # Function to check if a connection can be established to the server
         import socket
+
         try:
             # Attempt to create a socket connection to the server
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(timeout)
                 s.connect((self._host, int(self._port)))
                 return True
-        except (socket.timeout, socket.error):
+        except (OSError, socket.timeout):
             return False
 
     def _start_next_worker(self):
@@ -180,6 +182,7 @@ class QGateWay(QObject):
 
     def _on_new_session(self, session: SessionStats):
         from napari.qt.threading import create_worker
+
         client = session[0]
         if not client:
             return
@@ -219,7 +222,6 @@ class NonCachedPixelsWrapper(PixelsWrapper):
         ps = self._conn.c.sf.createRawPixelsStore()
         ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
         return ps
-    
 
 
 omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
