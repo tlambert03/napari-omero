@@ -34,10 +34,9 @@ class QGateWay(QObject):
         self.destroyed.connect(self.close)
         atexit.register(self.close)
         self.worker: Optional[WorkerBase] = None
-        self.conn_watchdog_worker: Optional[WorkerBase] = None
         self._next_worker: Optional[WorkerBase] = None
 
-        self.timeout_check_interval = 5  # how often to check for timeout
+        self._connection_watchdog_timout = 5
 
     @property
     def conn(self):
@@ -94,18 +93,24 @@ class QGateWay(QObject):
 
     def get_current(self) -> tuple[str, str, str, str]:
         return self.store.get_current()
-    
-    def _start_connection_watchdog(self):
-        """Start the connection watchdog worker."""
-        self.conn_watchdog_worker = self._submit(self._connection_watchdog)
 
     def _connection_watchdog(self):
-        """Worker function to monitor the connection."""
+        import time
         while True:
-            if not self.isConnected():
-                self.disconnected.emit()
-                break
-            self.conn_watchdog_worker.sleep(self.timeout_check_interval)
+            connected = self._check_connection(timeout=self._connection_watchdog_timout)
+            if not connected:
+                self.gateway.disconnected.emit()
+                self.conn_watchdog_worker = None
+                return
+
+    def _check_connection(self, timeout: int = 5):
+        import socket
+        try:
+            # Attempt to create a socket connection to the server
+            with socket.create_connection(self.host, timeout=timeout) as sock:
+                return True
+        except (socket.timeout, socket.error):
+            return False
 
     def _start_next_worker(self):
         if self._next_worker is not None:
@@ -177,7 +182,6 @@ class QGateWay(QObject):
 
         self.connected.emit(self.conn)
         self.status.emit("")
-        self._start_connection_watchdog()
         return self.conn
 
     def getObjects(
