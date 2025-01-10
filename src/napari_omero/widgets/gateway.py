@@ -116,7 +116,7 @@ class QGateWay(QObject):
             # Attempt to create a socket connection to the server
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(timeout)
-                s.connect((self._host, int(self._port  or 4064)))
+                s.connect((self._host, int(self._port or 4064)))
                 return True
         except (OSError, socket.timeout):
             return False
