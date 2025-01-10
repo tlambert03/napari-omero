@@ -101,6 +101,7 @@ class QGateWay(QObject):
             if not connected:
                 self.gateway.disconnected.emit()
                 self.conn_watchdog_worker = None
+                self.status.emit("Error: Connection timed out.")
                 return
             
             time.sleep(self._connection_watchdog_timout)
