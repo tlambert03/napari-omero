@@ -1,17 +1,17 @@
 from math import ceil
-from typing import Dict, List, Optional
+from typing import Optional
 
 import dask.array as da
 import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
+from vispy.color import Colormap
+
+from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
+from napari_omero.widgets import QGateWay
 from omero.cli import ProxyStringType
 from omero.gateway import BlitzGateway, ImageWrapper
 from omero.model import IObject
-from vispy.color import Colormap
-
-from ..utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
-from ..widgets import QGateWay
 
 
 # @timer
@@ -29,7 +29,7 @@ def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
         if conn:
             return conn
 
-    from ..widgets.login import LoginForm
+    from napari_omero.widgets.login import LoginForm
 
     form = LoginForm(gateway)
     gateway.connected.connect(form.accept)
@@ -37,7 +37,7 @@ def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
     return form.gateway.conn
 
 
-def omero_url_reader(path: str) -> List[LayerData]:
+def omero_url_reader(path: str) -> list[LayerData]:
     match = parse_omero_url(path)
     if not match:
         return []
@@ -54,7 +54,7 @@ def omero_url_reader(path: str) -> List[LayerData]:
 # @timer
 def omero_proxy_reader(
     path: str, proxy_obj: Optional[IObject] = None
-) -> List[LayerData]:
+) -> list[LayerData]:
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
@@ -64,7 +64,7 @@ def omero_proxy_reader(
     return []
 
 
-def load_image_wrapper(image: ImageWrapper) -> List[LayerData]:
+def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     meta = get_omero_metadata(image)
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
@@ -76,7 +76,7 @@ def load_image_wrapper(image: ImageWrapper) -> List[LayerData]:
     return [(data, meta)]
 
 
-def get_omero_metadata(image: ImageWrapper) -> Dict:
+def get_omero_metadata(image: ImageWrapper) -> dict:
     """Get metadata from OMERO as a Dict to pass to napari."""
     channels = image.getChannels()
 
@@ -135,7 +135,7 @@ def get_data_lazy(image: ImageWrapper) -> da.Array:
     return da.stack(t_stacks)
 
 
-def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
+def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
     """Get a pyramid of rgb dask arrays, loading tiles from OMERO."""
     size_z = image.getSizeZ()
     size_t = image.getSizeT()
@@ -147,7 +147,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
     tile_w, tile_h = image._re.getTileSize()
 
     def get_tile(tile_name):
-        """tile_name is 'level,z,t,x,y,w,h'"""
+        """tile_name is 'level,z,t,x,y,w,h'."""
         # print('get_tile rps', tile_name)
         level, z, c, t, x, y, w, h = (int(n) for n in tile_name.split(","))
         pix = image._conn.c.sf.createRawPixelsStore()
@@ -185,7 +185,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> List[da.Array]:
                 )
                 lazy_row.append(lazy_tile)
             lazy_row = da.concatenate(lazy_row, axis=1)
-            print("lazy_row.shape", lazy_row.shape)
+            print("lazy_row.shape", lazy_row.shape)  # type: ignore[attr-defined]
             lazy_rows.append(lazy_row)
         return da.concatenate(lazy_rows, axis=0)
 

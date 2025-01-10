@@ -2,9 +2,10 @@ import functools
 import logging
 import re
 import time
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
+
 from omero.cli import ProxyStringType
 from omero.gateway import BlitzGateway, BlitzObjectWrapper
 from omero.model import IObject
@@ -66,7 +67,7 @@ omero_object_pattern = re.compile(
 )
 
 
-def parse_omero_url(url: str) -> Optional[Dict[str, str]]:
+def parse_omero_url(url: str) -> Optional[dict[str, str]]:
     match = omero_url_pattern.search(url)
     return match.groupdict() if match else None
 

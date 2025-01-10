@@ -1,12 +1,13 @@
 import os
 from functools import partial
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
-from ..utils import get_proxy_obj, parse_omero_url
+from napari_omero.utils import get_proxy_obj, parse_omero_url
+
 from .loaders import omero_proxy_reader, omero_url_reader
 
 
-def napari_get_reader(path: Union[str, List[str]]) -> Optional[Callable]:
+def napari_get_reader(path: Union[str, list[str]]) -> Optional[Callable]:
     if isinstance(path, str):
         if parse_omero_url(path):
             return omero_url_reader
