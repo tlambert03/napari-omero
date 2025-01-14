@@ -121,6 +121,10 @@ class OMEROWidget(QWidget):
         self.group_widget.hide()
         self.user_widget.hide()
 
+        if self.gateway.worker_watchdog:
+            self.gateway.worker_watchdog.quit()
+            self.gateway.worker_watchdog = None
+
         self._setup_tree()
 
     def _on_connect(self):
