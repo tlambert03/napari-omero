@@ -96,8 +96,8 @@ class QGateWay(QObject):
 
     def _connection_watchdog(self):
         # Function to be executed in thread to check connection status regularly
-        import time
         import socket
+        import time
 
         while True:
             try:
