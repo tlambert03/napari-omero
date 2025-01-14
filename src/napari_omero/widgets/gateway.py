@@ -189,9 +189,10 @@ class QGateWay(QObject):
         self.connected.emit(self.conn)
         self.status.emit("")
 
-        self.worker_watchdog = create_worker(self._connection_watchdog)
-        self.worker_watchdog.yielded.connect(self._on_yield_connection_watchdog)
-        self.worker_watchdog.start()
+        if not self.worker_watchdog:
+            self.worker_watchdog = create_worker(self._connection_watchdog)
+            self.worker_watchdog.yielded.connect(self._on_yield_connection_watchdog)
+            self.worker_watchdog.start()
         return self.conn
 
     def getObjects(
