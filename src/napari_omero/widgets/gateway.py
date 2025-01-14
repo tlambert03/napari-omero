@@ -36,7 +36,7 @@ class QGateWay(QObject):
         self.worker: Optional[WorkerBase] = None
         self._next_worker: Optional[WorkerBase] = None
         self.worker_watchdog = None
-        self._connection_watchdog_timout = 5
+        self._connection_watchdog_timout = 3
 
     @property
     def conn(self):
