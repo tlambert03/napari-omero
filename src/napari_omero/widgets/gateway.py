@@ -35,7 +35,7 @@ class QGateWay(QObject):
         atexit.register(self.close)
         self.worker: Optional[WorkerBase] = None
         self._next_worker: Optional[WorkerBase] = None
-
+        self.worker_watchdog = None
         self._connection_watchdog_timout = 5
 
     @property
@@ -97,29 +97,24 @@ class QGateWay(QObject):
     def _connection_watchdog(self):
         # Function to be executed in thread to check connection status regularly
         import time
-
-        while True:
-            connected = self._check_connection(timeout=self._connection_watchdog_timout)
-            if not connected:
-                self.disconnected.emit()
-                self.conn_watchdog_worker = None
-                self.status.emit("Error: Connection timed out.")
-                return
-
-            time.sleep(self._connection_watchdog_timout)
-
-    def _check_connection(self, timeout: int = 2):
-        # Function to check if a connection can be established to the server
         import socket
 
-        try:
-            # Attempt to create a socket connection to the server
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(timeout)
-                s.connect((self._host, int(self._port or 4064)))
-                return True
-        except (OSError, socket.timeout):
-            return False
+        while True:
+            try:
+                # Attempt to create a socket connection to the server
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(2)
+                    s.connect((self._host, int(self._port or 4064)))
+                    yield True
+            except (OSError, socket.timeout):
+                yield False
+            time.sleep(self._connection_watchdog_timout)
+
+    def _on_yield_connection_watchdog(self, is_connected: bool):
+        if not is_connected:
+            self.status.emit("Error: Connection lost")
+            self.disconnected.emit()
+            return
 
     def _start_next_worker(self):
         if self._next_worker is not None:
@@ -194,8 +189,9 @@ class QGateWay(QObject):
         self.connected.emit(self.conn)
         self.status.emit("")
 
-        worker_watchdog = create_worker(self._connection_watchdog)
-        worker_watchdog.start()
+        self.worker_watchdog = create_worker(self._connection_watchdog)
+        self.worker_watchdog.yielded.connect(self._on_yield_connection_watchdog)
+        self.worker_watchdog.start()
         return self.conn
 
     def getObjects(
