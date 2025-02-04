@@ -85,7 +85,7 @@ omero napari view Image:1
 
 While this package supports anything above python 3.9,
 In practice, python support is limited by `omero-py` and `zeroc-ice`,
-compatibility, which is limited to python <=3.10 at the time of writing.
+compatibility, which is limited to python <=3.12 at the time of writing.
 
 ### from conda
 
