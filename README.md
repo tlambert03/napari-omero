@@ -116,13 +116,13 @@ pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
   reports](https://github.com/tlambert03/napari-omero/issues/new) are welcome!
 - remote loading can be very slow still... though this is not strictly an issue
   of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
-  fetching time can be significant.  Plans for [asynchronous
-  rendering](https://napari.org/guides/stable/rendering.html) in
-  napari and
-  [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
-  may eventually improve the subjective performance... but remote data loading
+  fetching time can be significant.  Enabling [asynchronous
+  rendering](https://napari.org/stable/guides/rendering.html#asynchronous-slicing) in
+  napari improves the subjective performance... but remote data loading
   will likely always be a limitation here.
-  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`.
+  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`
+  or look in the Preferences on the Experimental tab.
+  Also, keep an eye on the [napari progressive loading implementation progress](https://github.com/napari/napari/issues/5561).
 
 ## contributing
 
