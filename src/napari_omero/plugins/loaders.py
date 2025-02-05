@@ -148,7 +148,6 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
 
     def get_tile(tile_name):
         """tile_name is 'level,z,t,x,y,w,h'."""
-        # print('get_tile rps', tile_name)
         level, z, c, t, x, y, w, h = (int(n) for n in tile_name.split(","))
         pix = image._conn.c.sf.createRawPixelsStore()
         pix_id = image.getPixelsId()
@@ -169,8 +168,6 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
         size_y = level_desc.sizeY
         cols = ceil(size_x / tile_w)
         rows = ceil(size_y / tile_h)
-        # print('level', level, level_id, size_x, size_y)
-        print("Cols", cols, "Rows", rows)
         lazy_rows = []
         for row in range(rows):
             lazy_row = []
@@ -185,7 +182,6 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
                 )
                 lazy_row.append(lazy_tile)
             lazy_row = da.concatenate(lazy_row, axis=1)
-            print("lazy_row.shape", lazy_row.shape)  # type: ignore[attr-defined]
             lazy_rows.append(lazy_row)
         return da.concatenate(lazy_rows, axis=0)
 
