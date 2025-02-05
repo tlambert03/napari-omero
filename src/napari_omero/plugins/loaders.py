@@ -72,6 +72,18 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     return [(data, meta)]
 
 
+BASIC_COLORMAPS = {
+    "000000": "gray_r",
+    "FFFFFF": "gray",
+    "FF0000": "red",
+    "00FF00": "green",
+    "0000FF": "blue",
+    "FF00FF": "magenta",
+    "00FFFF": "cyan",
+    "FFFF00": "yellow",
+}
+
+
 def get_omero_metadata(image: ImageWrapper) -> dict:
     """Get metadata from OMERO as a Dict to pass to napari."""
     channels = image.getChannels()
@@ -80,24 +92,9 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     for ch in channels:
         # use current rendering settings from OMERO
         color = ch.getColor()
-        # ensure basics always work properly
-        # even for napari <0.4.19
-        if color.getHtml() == "000000":
-            colors.append(ensure_colormap("gray_r"))
-        if color.getHtml() == "FFFFFF":
-            colors.append(ensure_colormap("gray"))
-        if color.getHtml() == "FF0000":
-            colors.append(ensure_colormap("red"))
-        if color.getHtml() == "00FF00":
-            colors.append(ensure_colormap("green"))
-        if color.getHtml() == "0000FF":
-            colors.append(ensure_colormap("blue"))
-        if color.getHtml() == "FF00FF":
-            colors.append(ensure_colormap("magenta"))
-        if color.getHtml() == "00FFFF":
-            colors.append(ensure_colormap("cyan"))
-        if color.getHtml() == "FFFF00":
-            colors.append(ensure_colormap("yellow"))
+        # ensure the basics work regardless of napari version
+        if color.getHtml() in BASIC_COLORMAPS:
+            colors.append(ensure_colormap(BASIC_COLORMAPS[color.getHtml()]))
         else:
             try:
                 # requires 0.4.19 or later
