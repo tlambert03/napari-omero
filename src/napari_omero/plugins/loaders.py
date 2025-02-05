@@ -4,6 +4,7 @@ import dask.array as da
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
+from vispy.color import Colormap
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
@@ -78,16 +79,24 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     colors = []
     for ch in channels:
         # use current rendering settings from OMERO
-        color = ch.getColor().getHtml()
-        # work around a napari bug https://github.com/napari/napari/issues/7504
-        if color == "000000":
+        color = ch.getColor()
+        # ensure white and black always work properly
+        # even for napari <0.4.19
+        if color.getHtml() == "000000":
             colors.append(ensure_colormap("gray_r"))
-        if color == "FFFFFF":
+        if color.getHtml() == "FFFFFF":
             colors.append(ensure_colormap("gray"))
         else:
-            # if the colormap exists in napari, use it
-            # otherwise, create a custom colormap
-            colors.append(ensure_colormap("#" + color))
+            try:
+                # requires 0.4.19 or later
+                # if the colormap exists in napari, use it
+                # otherwise, create a custom napari colormap
+                colors.append(ensure_colormap("#" + color.getHtml()))
+            except KeyError:
+                # on napari <0.4.19 use vispy colormap
+                color = color.getRGB()
+                color = [r / 256 for r in color]
+                colors.append(Colormap([[0, 0, 0], color]))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
