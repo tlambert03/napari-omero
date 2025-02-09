@@ -39,6 +39,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -159,6 +161,7 @@ filterwarnings = [
     "ignore:'U' mode is deprecated",
     "ignore:Please import PackageMetadata from 'npe2'",
     "ignore:`np.bool8` is a deprecated alias for `np.bool_`:DeprecationWarning:skimage",
+    "ignore:Pickle, copy, and deepcopy support will be removed from itertools in Python 3.14:DeprecationWarning"
 ]
 
 
