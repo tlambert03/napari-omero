@@ -83,6 +83,7 @@ class OMEROWidget(QWidget):
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.thumb_grid)
         self.gateway.connected.connect(self._on_connect)
+        self.gateway.disconnected.connect(self._on_disconnect)
         self.disconnect_button.clicked.connect(self._on_disconnect)
 
     @property
@@ -119,6 +120,10 @@ class OMEROWidget(QWidget):
         self.thumb_grid.hide()
         self.group_widget.hide()
         self.user_widget.hide()
+
+        if self.gateway.worker_watchdog:
+            self.gateway.worker_watchdog.quit()
+            self.gateway.worker_watchdog = None
 
         self._setup_tree()
 
