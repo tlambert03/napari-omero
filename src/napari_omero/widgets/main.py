@@ -109,6 +109,7 @@ class OMEROWidget(QWidget):
         self.tree.setModel(None)
         self.tree.setModel(self.model)
         self.tree.selectionModel().selectionChanged.connect(self._on_tree_selection)
+        self.tree.expanded.connect(self._on_tree_expanded)
 
     def _on_disconnect(self):
         """Hide project widgets (tree, thumb grid) and disconnect button."""
@@ -181,6 +182,13 @@ class OMEROWidget(QWidget):
         group_id = self.group_combo.currentData()
         user_id = self.user_combo.currentData()
         self.model.submit_get_projects(owner=user_id, group=group_id)
+
+    def _on_tree_expanded(self, index: QModelIndex):
+        # Select the expanded item, clearing other selections
+        self.tree.selectionModel().select(
+            index,
+            self.tree.selectionModel().ClearAndSelect | self.tree.selectionModel().Rows,
+        )
 
     def _on_tree_selection(self, selected: QItemSelection, deselected: QItemSelection):
         indices = selected.indexes()
