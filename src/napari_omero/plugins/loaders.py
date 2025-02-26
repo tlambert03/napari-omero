@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from math import ceil
 from typing import Optional
 
@@ -35,6 +36,15 @@ def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
     gateway.connected.connect(form.accept)
     form.exec_()
     return form.gateway.conn
+
+
+@contextmanager
+def raw_pixels_store(image):
+    pix = image._conn.c.sf.createRawPixelsStore()
+    try:
+        yield pix
+    finally:
+        pix.close()
 
 
 def omero_url_reader(path: str) -> list[LayerData]:
@@ -149,17 +159,14 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
     def get_tile(tile_name):
         """tile_name is 'level,z,t,x,y,w,h'."""
         level, z, c, t, x, y, w, h = (int(n) for n in tile_name.split(","))
-        pix = image._conn.c.sf.createRawPixelsStore()
         pix_id = image.getPixelsId()
-        try:
+        with raw_pixels_store(image) as pix:
             pix.setPixelsId(pix_id, False)
             pix.setResolutionLevel(level)
             tile = pix.getTile(z, c, t, x, y, w, h)
             tile = np.frombuffer(tile, dtype=np.uint8)
             tile = tile.reshape((h, w))
             return tile
-        finally:
-            pix.close()
 
     lazy_reader = delayed(get_tile)
 
