@@ -35,6 +35,8 @@ class QGateWay(QObject):
         atexit.register(self.close)
         self.worker: Optional[WorkerBase] = None
         self._next_worker: Optional[WorkerBase] = None
+        self.worker_watchdog = None
+        self._connection_watchdog_timout = 3
 
     @property
     def conn(self):
@@ -91,6 +93,28 @@ class QGateWay(QObject):
 
     def get_current(self) -> tuple[str, str, str, str]:
         return self.store.get_current()
+
+    def _connection_watchdog(self):
+        # Function to be executed in thread to check connection status regularly
+        import socket
+        import time
+
+        while True:
+            try:
+                # Attempt to create a socket connection to the server
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(2)
+                    s.connect((self._host, int(self._port or 4064)))
+                    yield True
+            except (OSError, socket.timeout):
+                yield False
+            time.sleep(self._connection_watchdog_timout)
+
+    def _on_yield_connection_watchdog(self, is_connected: bool):
+        if not is_connected:
+            self.status.emit("Error: Connection lost")
+            self.disconnected.emit()
+            return
 
     def _start_next_worker(self):
         if self._next_worker is not None:
@@ -152,6 +176,8 @@ class QGateWay(QObject):
             self.error.emit(e)
 
     def _on_new_session(self, session: SessionStats):
+        from napari.qt.threading import create_worker
+
         client = session[0]
         if not client:
             return
@@ -162,6 +188,11 @@ class QGateWay(QObject):
 
         self.connected.emit(self.conn)
         self.status.emit("")
+
+        if not self.worker_watchdog:
+            self.worker_watchdog = create_worker(self._connection_watchdog)
+            self.worker_watchdog.yielded.connect(self._on_yield_connection_watchdog)
+            self.worker_watchdog.start()
         return self.conn
 
     def getObjects(
