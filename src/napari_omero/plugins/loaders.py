@@ -161,7 +161,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
         level, z, c, t, x, y, w, h = (int(n) for n in tile_name.split(","))
         pix_id = image.getPixelsId()
         with raw_pixels_store(image) as pix:
-            pix.setPixelsId(pix_id, False)
+            pix.setPixelsId(pix_id, False, {"omero.group": "-1"})
             pix.setResolutionLevel(level)
             tile = pix.getTile(z, c, t, x, y, w, h)
             tile = np.frombuffer(tile, dtype=np.uint8)
