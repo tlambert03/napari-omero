@@ -65,6 +65,34 @@ def omero_proxy_reader(
 def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     data = get_data_lazy(image)
     meta = get_omero_metadata(image)
+
+    # check for singleton dims in data to be able to remove them
+    singleton_dims = [dim for dim in range(data.ndim) if data.shape[dim] == 1]
+    # if the channels dim isn't the only singleton, we will squeeze other singletons
+    if not (len(singleton_dims) == 1 and 1 in singleton_dims):
+        if 1 in singleton_dims:  # channels dim
+            # we need to keep this, because we split on it
+            # if it's a singleton, napari will squeeze it out anyways
+            singleton_dims.remove(1)
+        if 0 in singleton_dims:  # time dim
+            # if T is being dropped, update channel_axis for new position of C
+            meta["channel_axis"] = 0
+
+        # squeeze out singleton dims from data
+        data = data.squeeze(axis=tuple(singleton_dims))
+
+        # make sure layer scale and axis_labels are updated for the squeezed dims
+        non_channel_axes = [i for i in range(5) if i != 1]
+        meta["scale"] = [
+            meta["scale"][non_channel_axes.index(i)]
+            for i in range(5)
+            if i not in singleton_dims and i != 1
+        ]
+        meta["axis_labels"] = [
+            meta["axis_labels"][non_channel_axes.index(i)]
+            for i in range(5)
+            if i not in singleton_dims and i != 1
+        ]
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
@@ -96,6 +124,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
 
     return {
         "channel_axis": 1,
+        "axis_labels": list("TZYX"),
         "colormap": colors,
         "contrast_limits": contrast_limits,
         "name": names,
