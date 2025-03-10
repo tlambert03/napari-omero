@@ -94,7 +94,7 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
         #    meta["axis_labels"][non_channel_axes.index(i)]
         #    for i in range(5)
         #    if i not in singleton_dims and i != 1
-        #]
+        # ]
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
