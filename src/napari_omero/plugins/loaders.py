@@ -88,11 +88,13 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
             for i in range(5)
             if i not in singleton_dims and i != 1
         ]
-        meta["axis_labels"] = [
-            meta["axis_labels"][non_channel_axes.index(i)]
-            for i in range(5)
-            if i not in singleton_dims and i != 1
-        ]
+        # TODO: axis_labels is a 0.5.0 and on feature
+        # re-enable this code once we're ready to break support for <0.5
+        # meta["axis_labels"] = [
+        #    meta["axis_labels"][non_channel_axes.index(i)]
+        #    for i in range(5)
+        #    if i not in singleton_dims and i != 1
+        #]
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
@@ -124,7 +126,9 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
 
     return {
         "channel_axis": 1,
-        "axis_labels": list("TZYX"),
+        # TODO: axis_labels is a 0.5.0 and on feature
+        # re-enable this code once we're ready to break support for <0.5
+        # "axis_labels": list("TZYX"),
         "colormap": colors,
         "contrast_limits": contrast_limits,
         "name": names,
