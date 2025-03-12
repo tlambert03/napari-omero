@@ -3,6 +3,7 @@ from typing import Optional
 import dask.array as da
 from dask.delayed import delayed
 from napari.types import LayerData
+from napari.utils.colormaps import ensure_colormap
 from vispy.color import Colormap
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
@@ -101,6 +102,18 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     return [(data, meta)]
 
 
+BASIC_COLORMAPS = {
+    "000000": "gray_r",
+    "FFFFFF": "gray",
+    "FF0000": "red",
+    "00FF00": "green",
+    "0000FF": "blue",
+    "FF00FF": "magenta",
+    "00FFFF": "cyan",
+    "FFFF00": "yellow",
+}
+
+
 def get_omero_metadata(image: ImageWrapper) -> dict:
     """Get metadata from OMERO as a Dict to pass to napari."""
     channels = image.getChannels()
@@ -108,9 +121,21 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     colors = []
     for ch in channels:
         # use current rendering settings from OMERO
-        color = ch.getColor().getRGB()
-        color = [r / 256 for r in color]
-        colors.append(Colormap([[0, 0, 0], color]))
+        color = ch.getColor()
+        # ensure the basics work regardless of napari version
+        if color.getHtml() in BASIC_COLORMAPS:
+            colors.append(ensure_colormap(BASIC_COLORMAPS[color.getHtml()]))
+        else:
+            try:
+                # requires 0.4.19 or later
+                # if the colormap exists in napari, use it
+                # otherwise, create a custom napari colormap
+                colors.append(ensure_colormap("#" + color.getHtml()))
+            except KeyError:
+                # on napari <0.4.19 use vispy colormap
+                color = color.getRGB()
+                color = [r / 256 for r in color]
+                colors.append(Colormap([[0, 0, 0], color]))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
