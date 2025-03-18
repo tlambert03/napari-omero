@@ -1,6 +1,7 @@
 from typing import Optional
 
 import dask.array as da
+import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
@@ -69,6 +70,26 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
 
     # check for singleton dims in data to be able to remove them
     singleton_dims = [dim for dim in range(data.ndim) if data.shape[dim] == 1]
+
+    if is_labels_image(data.dtype):
+        # napari will treat it as a labels layer, so no channel_axis splitting
+        # remove unitary dimensions from data and update scale accordingly
+        data = data.squeeze()
+        non_channel_axes = [i for i in range(5) if i != 1]
+        meta["scale"] = [
+            meta["scale"][non_channel_axes.index(i)]
+            for i in range(5)
+            if i not in singleton_dims and i != 1
+        ]
+        # TODO: axis_labels is a 0.5.0 and on feature, also available in Labels layer
+        # re-enable this code once we're ready to break support for <0.5
+        # meta["axis_labels"] = [
+        #    meta["axis_labels"][non_channel_axes.index(i)]
+        #    for i in range(5)
+        #    if i not in singleton_dims and i != 1
+        # ]
+        return [(data, meta)]
+
     # if the channels dim isn't the only singleton, we will squeeze other singletons
     if not (len(singleton_dims) == 1 and 1 in singleton_dims):
         if 1 in singleton_dims:  # channels dim
@@ -113,11 +134,46 @@ BASIC_COLORMAPS = {
     "FFFF00": "yellow",
 }
 
+def is_labels_image(dtype: np.dtype) -> bool:
+    """Check if the image is a labels image.
+
+    This follows the napari convention of assuming images to be loaded as labels layers if 
+    data type is one of the following: np.uint32, np.int32, np.uint64, np.int64.
+    """
+    if dtype == np.uint32 or dtype == np.int32 or dtype == np.uint64 or dtype == np.int64:
+        return True
+    return False
+
 
 def get_omero_metadata(image: ImageWrapper) -> dict:
     """Get metadata from OMERO as a Dict to pass to napari."""
     channels = image.getChannels()
+    
+    visibles = [ch.isActive() for ch in channels]
+    names = [ch.getLabel() for ch in channels]
 
+    size_x = image.getPixelSizeX() or 1
+    size_y = image.getPixelSizeY() or 1
+    size_z = image.getPixelSizeZ() or 1
+    # data is TCZYX, but C is passed to channel_axis and split
+    # so we only need scale to have 4 elements
+    scale = [1, size_z, size_y, size_x]
+
+    # Check data type to see if napari will load it as a labels layer
+    pixels = image.getPrimaryPixels()
+    dtype = PIXEL_TYPES.get(pixels.getPixelsType().value, None)
+    if is_labels_image(dtype):
+        # metadata for labels layer
+
+        return {
+            "name": names[0],
+            "visible": visibles[0],
+            "scale": scale,
+            # TODO: axis_labels is a 0.5.0 and on feature
+            # re-enable this code once we're ready to break support for <0.5
+            # "axis_labels": list("TZYX"),
+        }
+    # metadata for image layer
     colors = []
     for ch in channels:
         # use current rendering settings from OMERO
@@ -138,16 +194,6 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
                 colors.append(Colormap([[0, 0, 0], color]))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
-
-    visibles = [ch.isActive() for ch in channels]
-    names = [ch.getLabel() for ch in channels]
-
-    size_x = image.getPixelSizeX() or 1
-    size_y = image.getPixelSizeY() or 1
-    size_z = image.getPixelSizeZ() or 1
-    # data is TCZYX, but C is passed to channel_axis and split
-    # so we only need scale to have 4 elements
-    scale = [1, size_z, size_y, size_x]
 
     return {
         "channel_axis": 1,
