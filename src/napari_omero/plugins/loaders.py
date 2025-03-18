@@ -137,10 +137,11 @@ BASIC_COLORMAPS = {
 def is_labels_image(dtype: np.dtype) -> bool:
     """Check if the image is a labels image.
 
-    This follows the napari convention of assuming images to be loaded as labels layers if 
-    data type is one of the following: np.uint32, np.int32, np.uint64, np.int64.
+    This follows the napari convention of assuming images to be loaded as labels layers 
+    if the data type is one of the following: np.uint32, np.int32, np.uint64, np.int64.
     """
-    if dtype == np.uint32 or dtype == np.int32 or dtype == np.uint64 or dtype == np.int64:
+    if dtype == np.uint32 or dtype == np.int32 or dtype == np.uint64 or \
+        dtype == np.int64:
         return True
     return False
 
