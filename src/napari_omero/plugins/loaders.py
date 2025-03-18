@@ -134,14 +134,19 @@ BASIC_COLORMAPS = {
     "FFFF00": "yellow",
 }
 
+
 def is_labels_image(dtype: np.dtype) -> bool:
     """Check if the image is a labels image.
 
-    This follows the napari convention of assuming images to be loaded as labels layers 
+    This follows the napari convention of assuming images to be loaded as labels layers
     if the data type is one of the following: np.uint32, np.int32, np.uint64, np.int64.
     """
-    if dtype == np.uint32 or dtype == np.int32 or dtype == np.uint64 or \
-        dtype == np.int64:
+    if (
+        dtype == np.uint32
+        or dtype == np.int32
+        or dtype == np.uint64
+        or dtype == np.int64
+    ):
         return True
     return False
 
@@ -149,7 +154,7 @@ def is_labels_image(dtype: np.dtype) -> bool:
 def get_omero_metadata(image: ImageWrapper) -> dict:
     """Get metadata from OMERO as a Dict to pass to napari."""
     channels = image.getChannels()
-    
+
     visibles = [ch.isActive() for ch in channels]
     names = [ch.getLabel() for ch in channels]
 
