@@ -99,7 +99,7 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
-    return [(data, meta)]
+    return [(data, meta, 'image')]
 
 
 BASIC_COLORMAPS = {
