@@ -90,10 +90,11 @@ compatibility, which is limited to python <=3.12 at the time of writing.
 ### from conda
 
 It's easiest to install `omero-py` from conda, so the recommended procedure
-is to install everything from conda, using the `conda-forge` channel
+is to install everything from conda, using the `conda-forge` channel.
+For example, to install the plugin, napari, and the default Qt backend, use:
 
 ```sh
-conda install -c conda-forge napari-omero
+conda install -c conda-forge napari-omero pyqt
 ```
 
 ### from pip
