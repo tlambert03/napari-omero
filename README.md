@@ -124,6 +124,10 @@ pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
   To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`
   or look in the Preferences on the Experimental tab.
   Also, keep an eye on the [napari progressive loading implementation progress](https://github.com/napari/napari/issues/5561).
+- For plugin developers: As napari-OMERO provides images as lazily-loaded [dask arrays](https://docs.dask.org/en/stable/array.html),
+  napari-plugins need to account for this when retrieving data from napari layers.
+  Keep in mind that forwarding the data to processing steps in plugins may lead to signficant loading
+  and processing times.
 
 ## contributing
 
