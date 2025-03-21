@@ -107,7 +107,7 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     encoder = get_encoder(img_obj.__class__)
 
     meta["metadata"] = {"omero": encoder.encode(img_obj)}
-    return [(data, meta)]
+    return [(data, meta, "image")]
 
 
 BASIC_COLORMAPS = {

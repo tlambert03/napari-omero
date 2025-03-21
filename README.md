@@ -90,10 +90,11 @@ compatibility, which is limited to python <=3.12 at the time of writing.
 ### from conda
 
 It's easiest to install `omero-py` from conda, so the recommended procedure
-is to install everything from conda, using the `conda-forge` channel
+is to install everything from conda, using the `conda-forge` channel.
+For example, to install the plugin, napari, and the default Qt backend, use:
 
 ```sh
-conda install -c conda-forge napari-omero
+conda install -c conda-forge napari-omero pyqt
 ```
 
 ### from pip
@@ -123,6 +124,10 @@ pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
   To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`
   or look in the Preferences on the Experimental tab.
   Also, keep an eye on the [napari progressive loading implementation progress](https://github.com/napari/napari/issues/5561).
+- For plugin developers: As napari-OMERO provides images as lazily-loaded [dask arrays](https://docs.dask.org/en/stable/array.html),
+  napari-plugins need to account for this when retrieving data from napari layers.
+  Keep in mind that forwarding the data to processing steps in plugins may lead to signficant loading
+  and processing times.
 
 ## contributing
 
