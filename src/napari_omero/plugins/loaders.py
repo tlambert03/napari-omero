@@ -4,6 +4,7 @@ import dask.array as da
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
+from omero_marshal import get_encoder
 from vispy.color import Colormap
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
@@ -100,13 +101,6 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
 
-    # get json metadata
-    from omero_marshal import get_encoder
-
-    img_obj = image._obj
-    encoder = get_encoder(img_obj.__class__)
-
-    meta["metadata"] = {"omero": encoder.encode(img_obj)}
     return [(data, meta, "image")]
 
 
@@ -157,6 +151,11 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     # so we only need scale to have 4 elements
     scale = [1, size_z, size_y, size_x]
 
+    # get json metadata from omero
+    img_obj = image._obj
+    encoder = get_encoder(img_obj.__class__)
+    metadata = {"omero": encoder.encode(img_obj)}
+
     return {
         "channel_axis": 1,
         # TODO: axis_labels is a 0.5.0 and on feature
@@ -167,6 +166,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
         "name": names,
         "visible": visibles,
         "scale": scale,
+        "metadata": metadata,
     }
 
 
