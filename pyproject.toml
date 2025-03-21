@@ -55,6 +55,7 @@ dependencies = [
     "napari>=0.4.13",
     "omero-py",
     "omero-rois",
+    "omero-marshal",
     # these come with napari ...
     # but are directly imported here as well so are included explicitly
     "qtpy>=1.10.0",
