@@ -99,6 +99,14 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
+
+    # get json metadata
+    from omero_marshal import get_encoder
+
+    img_obj = image._obj
+    encoder = get_encoder(img_obj.__class__)
+
+    meta["metadata"] = {"omero": encoder.encode(img_obj)}
     return [(data, meta)]
 
 
