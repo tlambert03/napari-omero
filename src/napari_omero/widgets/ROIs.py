@@ -19,7 +19,7 @@ from .gateway import QGateWay
 
 
 class ROIWidget(QWidget):
-    def __init__(self, viewer: "napari.Viewer"):
+    def __init__(self, viewer: "napari.viewer.Viewer"):  # noqa: F821
         super().__init__()
 
         self.viewer = viewer
