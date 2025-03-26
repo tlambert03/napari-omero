@@ -117,7 +117,7 @@ class ROIWidget(QWidget):
             return
 
         target_layer.metadata["omero"] = self.selected_layer.metadata["omero"]
-        self.status_label.setText(f"Metadata pasted from {self.selected_layer.name} to {target_layer.name}")
+        self.status_label.setText(f"Metadata pasted to {target_layer.name}")
 
     @Viewer.bind_key("Control-Shift-c", overwrite=True)
     def _on_copy_metadata(self, viewer):
