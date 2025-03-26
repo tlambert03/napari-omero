@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 import pyperclip
 from napari.layers import Labels, Shapes
+from napari.viewer import Viewer
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
     QHBoxLayout,
@@ -36,32 +37,46 @@ class ROIWidget(QWidget):
         self.labels_layer: Optional[Labels] = None
         self.copied_metadata: dict = None
 
-        layout_top = QHBoxLayout()
+        self.setup_widget()
+
+    def setup_widget(self):
+
+        # Layouts
+        layout_copy_controls = QHBoxLayout()
+        layout_layer_hint = QHBoxLayout()
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        self.selected_layer_hint = QLabel("Selected layer:")
+        self.selected_layer_label = QLabel("None")
+        layout_layer_hint.addWidget(self.selected_layer_hint)
+        layout_layer_hint.addWidget(self.selected_layer_label)
+        
         self.label_link = QLabel("Link selected OMERO image to:")
         self.target_link_drowdown = QComboBox()
         self.link_bttn = QPushButton("Link images!")
         self.upload_bttn = QPushButton("Upload ROIs to OMERO")
         self.status_label = QLabel("")
 
-        layout_top.addWidget(self.label_link)
-        layout_top.addWidget(self.target_link_drowdown)
-        layout_top.addWidget(self.link_bttn)
+        layout_copy_controls.addWidget(self.label_link)
+        layout_copy_controls.addWidget(self.target_link_drowdown)
+        layout_copy_controls.addWidget(self.link_bttn)
 
-        layout.addLayout(layout_top)
+        layout.addLayout(layout_layer_hint)
+        layout.addLayout(layout_copy_controls)
         layout.addWidget(self.status_label)
         layout.addWidget(self.upload_bttn)
 
+        # connections
         self.link_bttn.clicked.connect(self._on_link_layers)
         self.upload_bttn.clicked.connect(self._on_upload_to_omero)
-
         self.viewer.layers.events.removed.connect(self._populate_dropdown)
         self.viewer.layers.events.inserted.connect(self._populate_dropdown)
-        # register cmd + shift + c and cmd + shift + v to copy/pate metadata
-        self.viewer.bind_key("Control-Shift-c", self._on_copy_metadata, overwrite=True)
-        self.viewer.bind_key("Control-Shift-v", self._on_paste_metadata, overwrite=True)
+        self.viewer.layers.selection.events.changed.connect(self._on_layer_selected)
+
+        # Key bindings
+        self.viewer.bind_key("Control-Shift-c", self._on_copy_metadata)
+        self.viewer.bind_key("Control-Shift-v", self._on_paste_metadata)
 
     @property
     def selected_layer(self):
@@ -104,9 +119,10 @@ class ROIWidget(QWidget):
         target_layer.metadata["omero"] = self.selected_layer.metadata["omero"]
         self.status_label.setText(f"Metadata pasted from {self.selected_layer.name} to {target_layer.name}")
 
-    def _on_copy_metadata(self):
+    @Viewer.bind_key("Control-Shift-c", overwrite=True)
+    def _on_copy_metadata(self, viewer):
         """Create a new shapes layer in the viewer and link to the selected layer."""
-        print("copying metadata")
+        print('copying metadata')
 
         # check if 'omero' field is in metadata
         if "omero" not in self.selected_layer.metadata:
@@ -117,7 +133,10 @@ class ROIWidget(QWidget):
         metadata_json = json.dumps(self.selected_layer.metadata["omero"])
         pyperclip.copy(metadata_json)
 
-    def _on_paste_metadata(self):
+        self.status_label.setText(f"Metadata copied from {self.selected_layer.name}")
+
+    @Viewer.bind_key("Control-Shift-v", overwrite=True)
+    def _on_paste_metadata(self, viewer):
         """Create a new labels layer in the viewer and link to the selected layer."""
         print("pasting metadata")
 
@@ -138,14 +157,15 @@ class ROIWidget(QWidget):
 
         # update metadata
         target_layer.metadata["omero"] = metadata
-        self.status_label.setText(f"Metadata pasted from {self.selected_layer.name} to {target_layer.name}")
+        self.status_label.setText(f"Metadata pasted to {target_layer.name}")
 
     def _on_upload_to_omero(self):
-        if not isinstance(self.selected_layers[0], Labels):
+        if type(self.selected_layer) not in self.supported_layers:
+            warnings.warn("Selected layer type currently not supported.")
             return
 
-        image_id = self.selected_layers[-1].metadata["omero"]["@id"]
-        labels_data = np.asarray(self.selected_layers[0].data)
+        image_id = self.selected_layer.metadata["omero"]["@id"]
+        labels_data = np.asarray(self.selected_layer.data)
 
         updateService = self.gateway.conn.getUpdateService()
         image_wrapper = lookup_obj(
@@ -164,3 +184,7 @@ class ROIWidget(QWidget):
             roi.addShape(shape)
 
         updateService.saveAndReturnObject(roi)
+
+        self.status_label.setText(
+            f"ROIs from <{self.selected_layer.name}> uploaded to OMERO (ID: #{image_id})"
+            )
