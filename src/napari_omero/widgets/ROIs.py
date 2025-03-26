@@ -65,7 +65,15 @@ class ROIWidget(QWidget):
 
     @property
     def selected_layer(self):
+        if len(self.viewer.layers.selection) == 0:
+            return None
         return list(self.viewer.layers.selection)[0]
+    
+    def _on_layer_selected(self):
+        if self.selected_layer is None:
+            self.selected_layer_label.setText("None")
+        else:
+            self.selected_layer_label.setText(self.selected_layer.name)
     
     def _populate_dropdown(self):
 
