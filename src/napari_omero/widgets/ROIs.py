@@ -4,7 +4,7 @@ from typing import Optional, ClassVar
 
 import numpy as np
 import pyperclip
-from napari.layers import Labels, Shapes
+import napari
 from napari.viewer import Viewer
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
@@ -25,7 +25,7 @@ from .gateway import QGateWay
 
 class ROIWidget(QWidget):
     supported_layers: ClassVar[list] = [
-        Labels,
+        napari.layers.Labels,
     ]
 
     def __init__(self, viewer: "napari.viewer.Viewer"):  # noqa: F821
