@@ -5,6 +5,9 @@ contributions:
   - id: napari-omero.widget
     title: Open OMERO widget
     python_name: napari_omero.widgets.main:OMEROWidget
+  - id: napari-omero.roi_widget
+    title: Open OMERO ROI widget
+    python_name: napari_omero.widgets.ROIs:ROIWidget
   - id: napari-omero.get_reader
     title: OMERO reader
     python_name: napari_omero.plugins._napari:napari_get_reader
@@ -15,3 +18,5 @@ contributions:
   widgets:
   - command: napari-omero.widget
     display_name: OMERO Browser
+  - command: napari-omero.roi_widget
+    display_name: OMERO ROI Uploader
