@@ -1,6 +1,6 @@
 import json
 import warnings
-from typing import Optional
+from typing import Optional, ClassVar
 
 import numpy as np
 import pyperclip
@@ -24,7 +24,7 @@ from .gateway import QGateWay
 
 
 class ROIWidget(QWidget):
-    supported_layers = [
+    supported_layers: ClassVar[list] = [
         Labels,
     ]
 
