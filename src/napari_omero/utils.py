@@ -80,7 +80,7 @@ def get_proxy_obj(path: str) -> Optional[IObject]:
     if match is None:
         return None
     d = match.groupdict()
-    _path = f'{d["type"]}:{d["id"]}'
+    _path = f"{d['type']}:{d['id']}"
     return ProxyStringType(d["type"])(_path)
 
 
