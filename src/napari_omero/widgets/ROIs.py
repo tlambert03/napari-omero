@@ -1,10 +1,10 @@
 import json
 import warnings
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
+import napari
 import numpy as np
 import pyperclip
-import napari
 from napari.viewer import Viewer
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
@@ -28,7 +28,7 @@ class ROIWidget(QWidget):
         napari.layers.Labels,
     ]
 
-    def __init__(self, viewer: "napari.viewer.Viewer"):  # noqa: F821
+    def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
 
         self.viewer = viewer
@@ -177,6 +177,4 @@ class ROIWidget(QWidget):
 
         updateService.saveAndReturnObject(roi)
 
-        self.status_label.setText(
-            f"ROIs uploaded to OMERO (ID: #{image_id})"
-        )
+        self.status_label.setText(f"ROIs uploaded to OMERO (ID: #{image_id})")
