@@ -120,7 +120,6 @@ class ROIWidget(QWidget):
     @Viewer.bind_key("Control-Shift-c", overwrite=True)
     def _on_copy_metadata(self, viewer):
         """Create a new shapes layer in the viewer and link to the selected layer."""
-        print("copying metadata")
 
         # check if 'omero' field is in metadata
         if "omero" not in self.selected_layer.metadata:
@@ -136,7 +135,6 @@ class ROIWidget(QWidget):
     @Viewer.bind_key("Control-Shift-v", overwrite=True)
     def _on_paste_metadata(self, viewer):
         """Create a new labels layer in the viewer and link to the selected layer."""
-        print("pasting metadata")
 
         target_layer = self.viewer.layers[self.target_link_drowdown.currentText()]
 
