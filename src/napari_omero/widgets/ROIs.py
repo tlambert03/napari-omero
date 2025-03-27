@@ -53,7 +53,7 @@ class ROIWidget(QWidget):
         layout_layer_hint.addWidget(self.selected_layer_label)
         
         self.label_link = QLabel("Link selected OMERO image to:")
-        self.target_link_drowdown = QComboBox()
+        self.target_link_dropdown = QComboBox()
         self.link_bttn = QPushButton("Link images!")
         self.upload_bttn = QPushButton("Upload ROIs to OMERO")
         self.status_label = QLabel("")
