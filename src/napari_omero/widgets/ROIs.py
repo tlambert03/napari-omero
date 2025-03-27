@@ -33,7 +33,7 @@ class ROIWidget(QWidget):
 
         self.viewer = viewer
         self.gateway = QGateWay(self)
-        self.copied_metadata: dict = None
+        self.copied_metadata: Optional[dict] = None
 
         self.setup_widget()
 
