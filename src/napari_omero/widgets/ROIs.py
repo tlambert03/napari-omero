@@ -33,8 +33,6 @@ class ROIWidget(QWidget):
 
         self.viewer = viewer
         self.gateway = QGateWay(self)
-        self.shapes_layer: Optional[Shapes] = None
-        self.labels_layer: Optional[Labels] = None
         self.copied_metadata: dict = None
 
         self.setup_widget()
