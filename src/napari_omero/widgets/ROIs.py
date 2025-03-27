@@ -58,7 +58,7 @@ class ROIWidget(QWidget):
         self.status_label = QLabel("")
 
         layout_copy_controls.addWidget(self.label_link)
-        layout_copy_controls.addWidget(self.target_link_drowdown)
+        layout_copy_controls.addWidget(self.target_link_dropdown)
         layout_copy_controls.addWidget(self.link_bttn)
 
         layout.addLayout(layout_layer_hint)
@@ -90,20 +90,20 @@ class ROIWidget(QWidget):
             self.selected_layer_label.setText(self.selected_layer.name)
 
     def _populate_dropdown(self):
-        currently_selected = self.target_link_drowdown.currentText()
-        self.target_link_drowdown.clear()
+        currently_selected = self.target_link_dropdown.currentText()
+        self.target_link_dropdown.clear()
 
         for layer in self.viewer.layers:
             if type(layer) in self.supported_layers:
-                self.target_link_drowdown.addItem(layer.name)
+                self.target_link_dropdown.addItem(layer.name)
 
         # restore selection if possible
-        index = self.target_link_drowdown.findText(currently_selected)
+        index = self.target_link_dropdown.findText(currently_selected)
         if index != -1:
-            self.target_link_drowdown.setCurrentIndex(index)
+            self.target_link_dropdown.setCurrentIndex(index)
 
     def _on_link_layers(self):
-        target_layer = self.viewer.layers[self.target_link_drowdown.currentText()]
+        target_layer = self.viewer.layers[self.target_link_dropdown.currentText()]
 
         if type(target_layer) not in self.supported_layers:
             warnings.warn("Target layer type currently not supported.", stacklevel=2)
@@ -134,7 +134,7 @@ class ROIWidget(QWidget):
     @Viewer.bind_key("Control-Shift-v", overwrite=True)
     def _on_paste_metadata(self, viewer):
         """Create a new labels layer in the viewer and link to the selected layer."""
-        target_layer = self.viewer.layers[self.target_link_drowdown.currentText()]
+        target_layer = self.viewer.layers[self.target_link_dropdown.currentText()]
 
         # paste from clipboard
         metadata_json = pyperclip.paste()
