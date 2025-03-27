@@ -3,6 +3,7 @@ import warnings
 from typing import ClassVar, Optional
 
 import napari
+from napari.layers import Labels
 import numpy as np
 import pyperclip
 from napari.viewer import Viewer
@@ -25,7 +26,7 @@ from .gateway import QGateWay
 
 class ROIWidget(QWidget):
     supported_layers: ClassVar[list] = [
-        napari.layers.Labels,
+        Labels,
     ]
 
     def __init__(self, viewer: "napari.viewer.Viewer"):
