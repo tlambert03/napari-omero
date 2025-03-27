@@ -1,11 +1,10 @@
 import json
 import warnings
-from typing import ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
-import napari
-from napari.layers import Labels
 import numpy as np
 import pyperclip
+from napari.layers import Labels
 from napari.viewer import Viewer
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
@@ -22,6 +21,9 @@ from omero.cli import ProxyStringType
 from omero.model import RoiI
 
 from .gateway import QGateWay
+
+if TYPE_CHECKING:
+    import napari
 
 
 class ROIWidget(QWidget):
