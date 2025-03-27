@@ -180,5 +180,5 @@ class ROIWidget(QWidget):
         updateService.saveAndReturnObject(roi)
 
         self.status_label.setText(
-            f"ROIs from <{self.selected_layer.name}> uploaded to OMERO (ID: #{image_id})"
+            f"ROIs uploaded to OMERO (ID: #{image_id})"
         )
