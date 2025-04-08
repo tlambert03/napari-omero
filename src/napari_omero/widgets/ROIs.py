@@ -158,22 +158,37 @@ class ROIWidget(QWidget):
         image_id = self.selected_layer.metadata["omero"]["@id"]
         labels_data = np.asarray(self.selected_layer.data)
 
+        # expand to 4D if it's lower dimensional
+        while len(labels_data.shape) < 4:
+            labels_data = np.expand_dims(labels_data, axis=0)
+
         updateService = self.gateway.conn.getUpdateService()
         image_wrapper = lookup_obj(
             self.gateway.conn, ProxyStringType("Image")(f"Image:{image_id}")
         )
 
-        roi = RoiI()
-        roi.setImage(image_wrapper._obj)
+        # get amount of labels in every timeframe to allocate ROI objects
+        ROIs_all = {}
+        for t in range(labels_data.shape[0]):
+            for label in np.unique(labels_data[t])[1:]:  # skip zero
+                _roi = RoiI()
+                _roi.setImage(image_wrapper._obj)
+                ROIs_all[(t, label)] = _roi
 
-        for label in range(1, labels_data.max() + 1):
-            mask = labels_data == label
+        # give every label a random, different color
+        colors = np.random.randint(0, 255, size=(len(ROIs_all), 4), dtype=np.uint8)
+        colors[:, -1] = 128  # set alpha to 128
 
-            rgba = np.random.randint(0, 255, 4)
-            rgba[-1] = 128  # opacity
-            shape = mask_from_binary_image(mask, raise_on_no_mask=False, rgba=rgba)
-            roi.addShape(shape)
+        for t in range(labels_data.shape[0]):
+            for z in range(labels_data.shape[1]):
+                labels = np.unique(labels_data[t, z])[1:]
+                for label in labels:
+                    binary = labels_data[t, z] == label
+                    shape = mask_from_binary_image(binary, c=0, z=z, t=t, text=f"label_{label}", rgba=colors[label - 1])
 
-        updateService.saveAndReturnObject(roi)
+                    ROIs_all[(t, label)].addShape(shape)
+
+        for roi in progress(ROIs_all.values()):
+            updateService.saveAndReturnObject(roi)
 
         self.status_label.setText(f"ROIs uploaded to OMERO (ID: #{image_id})")
