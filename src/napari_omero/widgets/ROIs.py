@@ -7,6 +7,7 @@ from napari.layers import Labels
 import numpy as np
 import pyperclip
 from napari.viewer import Viewer
+from napari.utils import progress
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
     QComboBox,
