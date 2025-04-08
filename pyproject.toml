@@ -54,6 +54,7 @@ classifiers = [
 dependencies = [
     "napari>=0.4.13",
     "omero-py",
+    "pyperclip",
     "omero-rois",
     "omero-marshal",
     # these come with napari ...
