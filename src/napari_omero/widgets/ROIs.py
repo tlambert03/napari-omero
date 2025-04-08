@@ -73,8 +73,8 @@ class ROIWidget(QWidget):
         self.viewer.layers.selection.events.changed.connect(self._on_layer_selected)
 
         # Key bindings
-        self.viewer.bind_key("Control-Shift-c", self._on_copy_metadata)
-        self.viewer.bind_key("Control-Shift-v", self._on_paste_metadata)
+        self.viewer.bind_key("Control-c", self._on_copy_metadata)
+        self.viewer.bind_key("Control-v", self._on_paste_metadata)
 
     @property
     def selected_layer(self):
@@ -104,7 +104,7 @@ class ROIWidget(QWidget):
     def _on_link_layers(self):
         target_layer = self.viewer.layers[self.target_link_dropdown.currentText()]
 
-        if type(target_layer) not in self.supported_layers:
+        if not any([isinstance(target_layer, l) for l in self.supported_layers]):
             warnings.warn("Target layer type currently not supported.", stacklevel=2)
             return
 
@@ -116,8 +116,7 @@ class ROIWidget(QWidget):
         target_layer.metadata["omero"] = self.selected_layer.metadata["omero"]
         self.status_label.setText(f"Metadata pasted to {target_layer.name}")
 
-    @Viewer.bind_key("Control-Shift-c", overwrite=True)
-    def _on_copy_metadata(self, viewer):
+    def _on_copy_metadata(self, viewer = None):
         """Create a new shapes layer in the viewer and link to the selected layer."""
         # check if 'omero' field is in metadata
         if "omero" not in self.selected_layer.metadata:
@@ -130,10 +129,9 @@ class ROIWidget(QWidget):
 
         self.status_label.setText(f"Metadata copied from {self.selected_layer.name}")
 
-    @Viewer.bind_key("Control-Shift-v", overwrite=True)
-    def _on_paste_metadata(self, viewer):
+    def _on_paste_metadata(self, viewer: "napari.viewer.Viewer"=None):
         """Create a new labels layer in the viewer and link to the selected layer."""
-        target_layer = self.viewer.layers[self.target_link_dropdown.currentText()]
+        target_layer = viewer.layers[self.target_link_dropdown.currentText()]
 
         # paste from clipboard
         metadata_json = pyperclip.paste()
