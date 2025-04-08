@@ -2,12 +2,11 @@ import json
 import warnings
 from typing import ClassVar, Optional
 
-import napari
-from napari.layers import Labels
 import numpy as np
 import pyperclip
-from napari.viewer import Viewer
+from napari.layers import Labels
 from napari.utils import progress
+from napari.viewer import Viewer
 from omero_rois import mask_from_binary_image
 from qtpy.QtWidgets import (
     QComboBox,
@@ -30,7 +29,7 @@ class ROIWidget(QWidget):
         Labels,
     ]
 
-    def __init__(self, viewer: "napari.viewer.Viewer"):
+    def __init__(self, viewer: Viewer):
         super().__init__()
 
         self.viewer = viewer
@@ -105,7 +104,7 @@ class ROIWidget(QWidget):
     def _on_link_layers(self):
         target_layer = self.viewer.layers[self.target_link_dropdown.currentText()]
 
-        if not any([isinstance(target_layer, l) for l in self.supported_layers]):
+        if type(target_layer) not in self.supported_layers:
             warnings.warn("Target layer type currently not supported.", stacklevel=2)
             return
 
@@ -117,7 +116,7 @@ class ROIWidget(QWidget):
         target_layer.metadata["omero"] = self.selected_layer.metadata["omero"]
         self.status_label.setText(f"Metadata pasted to {target_layer.name}")
 
-    def _on_copy_metadata(self, viewer = None):
+    def _on_copy_metadata(self, viewer: Viewer = None):
         """Create a new shapes layer in the viewer and link to the selected layer."""
         # check if 'omero' field is in metadata
         if "omero" not in self.selected_layer.metadata:
@@ -130,7 +129,7 @@ class ROIWidget(QWidget):
 
         self.status_label.setText(f"Metadata copied from {self.selected_layer.name}")
 
-    def _on_paste_metadata(self, viewer: "napari.viewer.Viewer"=None):
+    def _on_paste_metadata(self, viewer: Viewer = None):
         """Create a new labels layer in the viewer and link to the selected layer."""
         target_layer = viewer.layers[self.target_link_dropdown.currentText()]
 
@@ -185,7 +184,14 @@ class ROIWidget(QWidget):
                 labels = np.unique(labels_data[t, z])[1:]
                 for label in labels:
                     binary = labels_data[t, z] == label
-                    shape = mask_from_binary_image(binary, c=0, z=z, t=t, text=f"label_{label}", rgba=colors[label - 1])
+                    shape = mask_from_binary_image(
+                        binary,
+                        c=0,
+                        z=z,
+                        t=t,
+                        text=f"label_{label}",
+                        rgba=colors[label - 1],
+                    )
 
                     ROIs_all[(t, label)].addShape(shape)
 
