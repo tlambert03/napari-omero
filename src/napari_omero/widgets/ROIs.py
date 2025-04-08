@@ -1,6 +1,6 @@
 import json
 import warnings
-from typing import ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import numpy as np
 import pyperclip
@@ -22,6 +22,9 @@ from omero.cli import ProxyStringType
 from omero.model import RoiI
 
 from .gateway import QGateWay
+
+if TYPE_CHECKING:
+    import napari
 
 
 class ROIWidget(QWidget):
