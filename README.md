@@ -35,7 +35,8 @@ package and run:
 napari-omero
 ```
 
-The OMERO browser widget can also be manually added to the napari viewer:
+The OMERO browser widget can also be manually added to the napari viewer using the Plugins menu
+or programmatically using:
 
 ```python
 import napari
@@ -46,9 +47,9 @@ viewer.window.add_plugin_dock_widget('napari-omero')
 napari.run()
 ```
 
-### as a napari plugin
+### as a napari reader contribution
 
-This package provides a napari reader plugin that accepts OMERO resources as
+This package provides a napari reader contribution that accepts OMERO resources as
 "proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
@@ -56,18 +57,19 @@ URLS](https://help.openmicroscopy.org/urls-to-data.html).
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("omero://Image:1")
+viewer.open("omero://Image:1", plugin="napari-omero")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
-viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
+viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314", , plugin="napari-omero")
 ```
 
 these will also work on the napari command line interface, e.g.:
 
 ```bash
-napari omero://Image:1
+# quotes are needed if using zsh
+napari "omero://Image:1"
 # or
-napari http://yourdomain.example.org/omero/webclient/?show=image-314
+napari "http://yourdomain.example.org/omero/webclient/?show=image-314"
 ```
 
 ### as an OMERO CLI plugin
