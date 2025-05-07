@@ -1,6 +1,7 @@
 import warnings
 
-import napari
+from napari.layers import Image, Labels
+from napari import current_viewer
 from magicgui import magic_factory
 from napari.utils.notifications import show_info
 
@@ -12,11 +13,11 @@ from .gateway import QGateWay
 
 
 @magic_factory(call_button="Upload ROIS to OMERO")
-def save_rois_to_OMERO(omero_image: napari.layers.Layer) -> None:
+def save_rois_to_OMERO(omero_image: Image) -> None:
     """
     Upload ROIs for a given image to OMERO.
 
-    omero_image: napari.layers.Image
+    omero_image: Image
         An image from OMERO that was loaded into the napari viewer.
 
     Returns
@@ -29,7 +30,7 @@ def save_rois_to_OMERO(omero_image: napari.layers.Layer) -> None:
         return
 
     # assert that layer is 4D if it is a labels layer
-    if isinstance(omero_image, napari.layers.Labels) and omero_image.ndim != 4:
+    if isinstance(omero_image, Labels) and omero_image.ndim != 4:
         raise ValueError(
             "Labels layer must be 4D (time, z, y, x) to be uploaded to OMERO."
         )
@@ -41,7 +42,7 @@ def save_rois_to_OMERO(omero_image: napari.layers.Layer) -> None:
         gateway.conn, ProxyStringType("Image")(f"Image:{image_id}")
     )
 
-    viewer = napari.current_viewer()
+    viewer = current_viewer()
     save_rois(viewer=viewer, image=image_wrapper)
 
     src = omero_image.name
