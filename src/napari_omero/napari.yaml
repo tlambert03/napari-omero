@@ -14,7 +14,7 @@ contributions:
   readers:
   - command: napari-omero.get_reader
     filename_patterns:
-    - omero://*
+    - '*omero*'
   widgets:
   - command: napari-omero.widget
     display_name: OMERO Browser
