@@ -52,7 +52,7 @@ jobs:
           miniforge-version: "latest"
           python-version: ${{ matrix.python-version }}
 
-      - uses: pyvista/setup-headless-display-action@v3
+      - uses: pyvista/setup-headless-display-action@v4
         with:
           qt: true
 
