@@ -134,6 +134,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
         "visible": visibles,
         "scale": scale,
         "metadata": metadata,
+        "axis_labels": ("t", "z", "y", "x"),
     }
 
 
