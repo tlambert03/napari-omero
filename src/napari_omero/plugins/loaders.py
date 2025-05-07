@@ -63,7 +63,13 @@ def omero_proxy_reader(
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
-        wrapper = lookup_obj(gateway, proxy_obj)
+        try:
+            wrapper = lookup_obj(gateway, proxy_obj)
+        except Exception:
+            gateway = get_gateway(path, force_reconnect=True)
+            if not gateway:
+                return []
+            wrapper = lookup_obj(gateway, proxy_obj)
         if isinstance(wrapper, ImageWrapper):
             return load_image_wrapper(wrapper)
     return []
