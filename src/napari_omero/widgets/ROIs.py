@@ -1,6 +1,6 @@
 import warnings
 
-import napari
+import napari.viewer
 from magicgui import magic_factory
 from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
@@ -42,7 +42,7 @@ def save_rois_to_OMERO(omero_image: Image) -> None:
         gateway.conn, ProxyStringType("Image")(f"Image:{image_id}")
     )
 
-    viewer = napari.current_viewer()
+    viewer = napari.viewer.current_viewer()
     save_rois(viewer=viewer, image=image_wrapper)
 
     src = omero_image.name
