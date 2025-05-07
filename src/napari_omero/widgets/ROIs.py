@@ -1,18 +1,18 @@
 import warnings
+
 import napari
+from magicgui import magic_factory
 from napari.utils.notifications import show_info
+
+from napari_omero.plugins.omero import save_rois
 from napari_omero.utils import lookup_obj
 from omero.cli import ProxyStringType
-from magicgui import magic_factory
 
 from .gateway import QGateWay
-from ..plugins.omero import save_rois
 
 
-@magic_factory(call_button='Upload ROIS to OMERO')
-def save_rois_to_OMERO(
-        omero_image: napari.layers.Layer
-) -> None:
+@magic_factory(call_button="Upload ROIS to OMERO")
+def save_rois_to_OMERO(omero_image: napari.layers.Layer) -> None:
     """
     Upload ROIs for a given image to OMERO.
 
@@ -23,13 +23,9 @@ def save_rois_to_OMERO(
     -------
     None
     """
-
     # check if 'omero' field is in metadata
     if "omero" not in omero_image.metadata:
-        warnings.warn(
-            "No OMERO metadata found in selected layer.",
-            stacklevel=2
-            )
+        warnings.warn("No OMERO metadata found in selected layer.", stacklevel=2)
         return
 
     # assert that layer is 4D if it is a labels layer
@@ -50,6 +46,4 @@ def save_rois_to_OMERO(
 
     src = omero_image.name
     trg = image_wrapper.getName()
-    show_info(
-        f"ROI layer {src} uploaded to OMERO image {trg}"
-    )
+    show_info(f"ROI layer {src} uploaded to OMERO image {trg}")
