@@ -1,7 +1,7 @@
 import warnings
 
-from magicgui import magic_factory
 import napari
+from magicgui import magic_factory
 from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
 
