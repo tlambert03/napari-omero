@@ -15,12 +15,17 @@ from omero.model import IObject
 
 
 # @timer
-def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
+def get_gateway(
+    path: str, host: Optional[str] = None, force_reconnect: bool = False
+) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
             gateway.close()
         gateway.host = host
+
+    if force_reconnect:
+        gateway.conn = None
 
     if gateway.isConnected():
         return gateway.conn
