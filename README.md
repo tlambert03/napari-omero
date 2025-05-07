@@ -54,13 +54,14 @@ This package provides a napari reader contribution that accepts OMERO resources 
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
+import napari
 viewer = napari.Viewer()
 
 # omero object identifier string
 viewer.open("omero://Image:1", plugin="napari-omero")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
-viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314", , plugin="napari-omero")
+viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314", plugin="napari-omero")
 ```
 
 these will also work on the napari command line interface, e.g.:
