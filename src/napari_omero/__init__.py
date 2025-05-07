@@ -5,6 +5,6 @@ try:
 except PackageNotFoundError:
     __version__ = "not-installed"
 
-from .widgets import OMEROWidget, ROIWidget
+from .widgets import OMEROWidget
 
-__all__ = ["OMEROWidget", "ROIWidget"]
+__all__ = ["OMEROWidget"]
