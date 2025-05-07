@@ -6,7 +6,7 @@ contributions:
     title: Open OMERO widget
     python_name: napari_omero.widgets.main:OMEROWidget
   - id: napari-omero.upload_to_omero
-    title: Upload to OMERO
+    title: Upload Annotations to OMERO
     python_name: napari_omero.widgets:save_rois_to_OMERO
   - id: napari-omero.get_reader
     title: OMERO reader
