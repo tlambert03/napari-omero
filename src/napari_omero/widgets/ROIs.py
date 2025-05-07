@@ -1,8 +1,8 @@
 import warnings
 
-from napari.layers import Image, Labels
-from napari import current_viewer
 from magicgui import magic_factory
+from napari import current_viewer
+from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
 
 from napari_omero.plugins.omero import save_rois
