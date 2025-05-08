@@ -12,7 +12,10 @@ from omero.cli import ProxyStringType
 from .gateway import QGateWay
 
 
-@magic_factory(call_button="Upload ROIS to OMERO")
+@magic_factory(
+    omero_image={"label": "Layer from OMERO to annotate"},
+    call_button="Upload Annotations to OMERO"
+)
 def save_rois_to_OMERO(omero_image: Image) -> None:
     """Upload annotations for a chosen image to OMERO.
 
