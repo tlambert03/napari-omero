@@ -19,4 +19,4 @@ contributions:
   - command: napari-omero.widget
     display_name: OMERO Browser
   - command: napari-omero.upload_to_omero
-    display_name: Upload ROI to OMERO
+    display_name: Upload Annotations to OMERO
