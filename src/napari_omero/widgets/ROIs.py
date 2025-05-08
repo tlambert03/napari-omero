@@ -47,4 +47,4 @@ def save_rois_to_OMERO(omero_image: Image) -> None:
 
     src = omero_image.name
     trg = image_wrapper.getName()
-    show_info(f"ROI layer {src} uploaded to OMERO image {trg}")
+    show_info(f"All annotation layers uploaded to OMERO image id {image_id}: {trg}")
