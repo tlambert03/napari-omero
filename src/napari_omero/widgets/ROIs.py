@@ -45,6 +45,5 @@ def save_rois_to_OMERO(omero_image: Image) -> None:
     viewer = napari.viewer.current_viewer()
     save_rois(viewer=viewer, image=image_wrapper)
 
-    src = omero_image.name
     trg = image_wrapper.getName()
     show_info(f"All annotation layers uploaded to OMERO image id {image_id}: {trg}")
