@@ -14,11 +14,14 @@ from .gateway import QGateWay
 
 @magic_factory(call_button="Upload ROIS to OMERO")
 def save_rois_to_OMERO(omero_image: Image) -> None:
-    """
-    Upload ROIs for a given image to OMERO.
+    """Upload annotations for a chosen image to OMERO.
 
+    Parameters
+    ----------
     omero_image: Image
-        An image from OMERO that was loaded into the napari viewer.
+        An image layer loaded from OMERO.
+        Layer metadata has stored OMERO image ID.
+        Annotations will be uploaded to the OMERO server as ROI for that image ID.
 
     Returns
     -------
