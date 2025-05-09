@@ -15,12 +15,17 @@ from omero.model import IObject
 
 
 # @timer
-def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
+def get_gateway(
+    path: str, host: Optional[str] = None, force_reconnect: bool = False
+) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
             gateway.close()
         gateway.host = host
+
+    if force_reconnect:
+        gateway.conn = None
 
     if gateway.isConnected():
         return gateway.conn
@@ -58,7 +63,13 @@ def omero_proxy_reader(
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
-        wrapper = lookup_obj(gateway, proxy_obj)
+        try:
+            wrapper = lookup_obj(gateway, proxy_obj)
+        except Exception:
+            gateway = get_gateway(path, force_reconnect=True)
+            if not gateway:
+                return []
+            wrapper = lookup_obj(gateway, proxy_obj)
         if isinstance(wrapper, ImageWrapper):
             return load_image_wrapper(wrapper)
     return []
