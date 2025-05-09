@@ -15,12 +15,17 @@ from omero.model import IObject
 
 
 # @timer
-def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
+def get_gateway(
+    path: str, host: Optional[str] = None, force_reconnect: bool = False
+) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
             gateway.close()
         gateway.host = host
+
+    if force_reconnect:
+        gateway.conn = None
 
     if gateway.isConnected():
         return gateway.conn
@@ -58,7 +63,13 @@ def omero_proxy_reader(
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
-        wrapper = lookup_obj(gateway, proxy_obj)
+        try:
+            wrapper = lookup_obj(gateway, proxy_obj)
+        except Exception:
+            gateway = get_gateway(path, force_reconnect=True)
+            if not gateway:
+                return []
+            wrapper = lookup_obj(gateway, proxy_obj)
         if isinstance(wrapper, ImageWrapper):
             return load_image_wrapper(wrapper)
     return []
@@ -67,36 +78,6 @@ def omero_proxy_reader(
 def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
     data = get_data_lazy(image)
     meta = get_omero_metadata(image)
-
-    # check for singleton dims in data to be able to remove them
-    singleton_dims = [dim for dim in range(data.ndim) if data.shape[dim] == 1]
-    # if the channels dim isn't the only singleton, we will squeeze other singletons
-    if not (len(singleton_dims) == 1 and 1 in singleton_dims):
-        if 1 in singleton_dims:  # channels dim
-            # we need to keep this, because we split on it
-            # if it's a singleton, napari will squeeze it out anyways
-            singleton_dims.remove(1)
-        if 0 in singleton_dims:  # time dim
-            # if T is being dropped, update channel_axis for new position of C
-            meta["channel_axis"] = 0
-
-        # squeeze out singleton dims from data
-        data = data.squeeze(axis=tuple(singleton_dims))
-
-        # make sure layer scale and axis_labels are updated for the squeezed dims
-        non_channel_axes = [i for i in range(5) if i != 1]
-        meta["scale"] = [
-            meta["scale"][non_channel_axes.index(i)]
-            for i in range(5)
-            if i not in singleton_dims and i != 1
-        ]
-        # TODO: axis_labels is a 0.5.0 and on feature
-        # re-enable this code once we're ready to break support for <0.5
-        # meta["axis_labels"] = [
-        #    meta["axis_labels"][non_channel_axes.index(i)]
-        #    for i in range(5)
-        #    if i not in singleton_dims and i != 1
-        # ]
     # contrast limits range ... not accessible from plugin interface
     # win_min = channel.getWindowMin()
     # win_max = channel.getWindowMax()
@@ -158,9 +139,6 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
 
     return {
         "channel_axis": 1,
-        # TODO: axis_labels is a 0.5.0 and on feature
-        # re-enable this code once we're ready to break support for <0.5
-        # "axis_labels": list("TZYX"),
         "colormap": colors,
         "contrast_limits": contrast_limits,
         "name": names,
