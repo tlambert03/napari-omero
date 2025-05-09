@@ -52,7 +52,7 @@ classifiers = [
 ]
 # add your package dependencies here
 dependencies = [
-    "napari>=0.4.13",
+    "napari>=0.5.0",
     "omero-py",
     "omero-rois",
     "omero-marshal",
