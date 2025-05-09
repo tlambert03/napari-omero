@@ -6,7 +6,8 @@ import dask.array as da
 import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
-from vispy.color import Colormap
+from napari.utils.colormaps import ensure_colormap
+from omero_marshal import get_encoder
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
@@ -16,12 +17,17 @@ from omero.model import IObject
 
 
 # @timer
-def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
+def get_gateway(
+    path: str, host: Optional[str] = None, force_reconnect: bool = False
+) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
             gateway.close()
         gateway.host = host
+
+    if force_reconnect:
+        gateway.conn = None
 
     if gateway.isConnected():
         return gateway.conn
@@ -68,7 +74,13 @@ def omero_proxy_reader(
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
-        wrapper = lookup_obj(gateway, proxy_obj)
+        try:
+            wrapper = lookup_obj(gateway, proxy_obj)
+        except Exception:
+            gateway = get_gateway(path, force_reconnect=True)
+            if not gateway:
+                return []
+            wrapper = lookup_obj(gateway, proxy_obj)
         if isinstance(wrapper, ImageWrapper):
             return load_image_wrapper(wrapper)
     return []
@@ -83,7 +95,19 @@ def load_image_wrapper(image: ImageWrapper) -> list[LayerData]:
         data = get_pyramid_lazy(image)
     else:
         data = get_data_lazy(image)
-    return [(data, meta)]
+    return [(data, meta, "image")]
+
+
+BASIC_COLORMAPS = {
+    "000000": "gray_r",
+    "FFFFFF": "gray",
+    "FF0000": "red",
+    "00FF00": "green",
+    "0000FF": "blue",
+    "FF00FF": "magenta",
+    "00FFFF": "cyan",
+    "FFFF00": "yellow",
+}
 
 
 def get_omero_metadata(image: ImageWrapper) -> dict:
@@ -93,23 +117,29 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     colors = []
     for ch in channels:
         # use current rendering settings from OMERO
-        color = ch.getColor().getRGB()
-        color = [r / 256 for r in color]
-        colors.append(Colormap([[0, 0, 0], color]))
+        color = ch.getColor()
+        # ensure the basics work regardless of napari version
+        if color.getHtml() in BASIC_COLORMAPS:
+            colors.append(ensure_colormap(BASIC_COLORMAPS[color.getHtml()]))
+        else:
+            colors.append(ensure_colormap("#" + color.getHtml()))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
     visibles = [ch.isActive() for ch in channels]
     names = [ch.getLabel() for ch in channels]
 
-    scale = None
-    # Setting z-scale causes issues with Z-slider.
-    # See https://github.com/tlambert03/napari-omero/pull/15
-    # if image.getSizeZ() > 1:
-    #     size_x = image.getPixelSizeX()
-    #     size_z = image.getPixelSizeZ()
-    #     if size_x is not None and size_z is not None:
-    #         scale = [1, size_z / size_x, 1, 1]
+    size_x = image.getPixelSizeX() or 1
+    size_y = image.getPixelSizeY() or 1
+    size_z = image.getPixelSizeZ() or 1
+    # data is TCZYX, but C is passed to channel_axis and split
+    # so we only need scale to have 4 elements
+    scale = [1, size_z, size_y, size_x]
+
+    # get json metadata from omero
+    img_obj = image._obj
+    encoder = get_encoder(img_obj.__class__)
+    metadata = {"omero": encoder.encode(img_obj)}
 
     return {
         "channel_axis": 1,
@@ -118,6 +148,8 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
         "name": names,
         "visible": visibles,
         "scale": scale,
+        "metadata": metadata,
+        "axis_labels": ("t", "z", "y", "x"),
     }
 
 
