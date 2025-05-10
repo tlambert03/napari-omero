@@ -5,7 +5,6 @@ from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
 from omero_marshal import get_encoder
-from vispy.color import Colormap
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
@@ -15,12 +14,17 @@ from omero.model import IObject
 
 
 # @timer
-def get_gateway(path: str, host: Optional[str] = None) -> BlitzGateway:
+def get_gateway(
+    path: str, host: Optional[str] = None, force_reconnect: bool = False
+) -> BlitzGateway:
     gateway = QGateWay()
     if host:
         if host != gateway.host:
             gateway.close()
         gateway.host = host
+
+    if force_reconnect:
+        gateway.conn = None
 
     if gateway.isConnected():
         return gateway.conn
@@ -58,7 +62,13 @@ def omero_proxy_reader(
     gateway = get_gateway(path)
 
     if proxy_obj.__class__.__name__.startswith("Image"):
-        wrapper = lookup_obj(gateway, proxy_obj)
+        try:
+            wrapper = lookup_obj(gateway, proxy_obj)
+        except Exception:
+            gateway = get_gateway(path, force_reconnect=True)
+            if not gateway:
+                return []
+            wrapper = lookup_obj(gateway, proxy_obj)
         if isinstance(wrapper, ImageWrapper):
             return load_image_wrapper(wrapper)
     return []
@@ -98,16 +108,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
         if color.getHtml() in BASIC_COLORMAPS:
             colors.append(ensure_colormap(BASIC_COLORMAPS[color.getHtml()]))
         else:
-            try:
-                # requires 0.4.19 or later
-                # if the colormap exists in napari, use it
-                # otherwise, create a custom napari colormap
-                colors.append(ensure_colormap("#" + color.getHtml()))
-            except KeyError:
-                # on napari <0.4.19 use vispy colormap
-                color = color.getRGB()
-                color = [r / 256 for r in color]
-                colors.append(Colormap([[0, 0, 0], color]))
+            colors.append(ensure_colormap("#" + color.getHtml()))
 
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
@@ -134,6 +135,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
         "visible": visibles,
         "scale": scale,
         "metadata": metadata,
+        "axis_labels": ("t", "z", "y", "x"),
     }
 
 
