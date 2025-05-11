@@ -26,7 +26,7 @@ def save_labels(layer, image: ImageWrapper) -> list[RoiI]:
     the mask.
     """
     # for each label value, check if we have any masks
-    masks_4d = layer.data
+    masks_4d = np.asarray(layer.data)
     rois = []
     for v in range(1, masks_4d.max() + 1):
         hits = masks_4d.flatten() == v

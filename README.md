@@ -21,6 +21,7 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 
 - GUI interface to browse remote OMERO data, with thumbnail previews.
 - Loads remote nD images from an OMERO server into napari
+- Upload annotsations (``Labels`, `Shapes` and `Points`) to OMERO.
 - Planes are loading on demand as sliders are moved ("lazy loading").
 - Loading of pyramidal images as napari multiscale layers
 - session management (login memory)

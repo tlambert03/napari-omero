@@ -5,6 +5,9 @@ contributions:
   - id: napari-omero.widget
     title: Open OMERO widget
     python_name: napari_omero.widgets.main:OMEROWidget
+  - id: napari-omero.upload_to_omero
+    title: Upload Annotations to OMERO
+    python_name: napari_omero.widgets:save_rois_to_OMERO
   - id: napari-omero.get_reader
     title: OMERO reader
     python_name: napari_omero.plugins._napari:napari_get_reader
@@ -12,6 +15,14 @@ contributions:
   - command: napari-omero.get_reader
     filename_patterns:
     - '*omero*'
+  menus:
+    napari/file/io_utilities:
+      - command: napari-omero.widget
+        display_name: OMERO Browser
+      - command: napari-omero.upload_to_omero
+        display_name: Upload Annotations to OMERO
   widgets:
   - command: napari-omero.widget
     display_name: OMERO Browser
+  - command: napari-omero.upload_to_omero
+    display_name: Upload Annotations to OMERO
