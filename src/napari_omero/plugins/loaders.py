@@ -127,7 +127,7 @@ def get_omero_metadata(image: ImageWrapper) -> dict:
     contrast_limits = [[ch.getWindowStart(), ch.getWindowEnd()] for ch in channels]
 
     visibles = [ch.isActive() for ch in channels]
-    names = [ch.getLabel() for ch in channels]
+    names = [f"{image.getId()}: {ch.getLabel()}" for ch in channels]
 
     size_x = image.getPixelSizeX() or 1
     size_y = image.getPixelSizeY() or 1
