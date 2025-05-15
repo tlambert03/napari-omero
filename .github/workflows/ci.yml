@@ -63,6 +63,12 @@ jobs:
           python -m pip install .[test]
           python -m pip install ${{ matrix.backend }}
 
+      - name: Set up OMERO
+        if: runner.os == 'Linux'
+        run: |
+          git clone https://github.com/openmicroscopy/omero-test-infra .omero
+          .omero/compose up
+
       - name: Test
         run: pytest --color=yes --cov=napari_omero --cov-report=xml
 
