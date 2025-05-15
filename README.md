@@ -21,10 +21,15 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 
 - GUI interface to browse remote OMERO data, with thumbnail previews.
 - Loads remote nD images from an OMERO server into napari
+- Upload annotsations (``Labels`, `Shapes` and `Points`) to OMERO.
 - Planes are loading on demand as sliders are moved ("lazy loading").
+- Loading of pyramidal images as napari multiscale layers
 - session management (login memory)
 - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
+
+> [!NOTE]
+> The user experience when working with remote images, particularly large multiscale (pyramidal) ones, like whole slide images, can be significantly improved by using napari 0.5.0 or newer and enabling the experimental asynchronous mode (n the GUI in `Preferences > Experimental > Render Images Asynchronously` or with the environmental variable `NAPARI_ASYNC=1`).
 
 ### as a napari dock widget
 
@@ -35,7 +40,8 @@ package and run:
 napari-omero
 ```
 
-The OMERO browser widget can also be manually added to the napari viewer:
+The OMERO browser widget can also be manually added to the napari viewer using the Plugins menu
+or programmatically using:
 
 ```python
 import napari
@@ -46,28 +52,30 @@ viewer.window.add_plugin_dock_widget('napari-omero')
 napari.run()
 ```
 
-### as a napari plugin
+### as a napari reader contribution
 
-This package provides a napari reader plugin that accepts OMERO resources as
+This package provides a napari reader contribution that accepts OMERO resources as
 "proxy strings" (e.g. `omero://Image:<ID>`) or as [OMERO webclient
 URLS](https://help.openmicroscopy.org/urls-to-data.html).
 
 ```python
+import napari
 viewer = napari.Viewer()
 
 # omero object identifier string
-viewer.open("omero://Image:1")
+viewer.open("omero://Image:1", plugin="napari-omero")
 
 # or URLS: https://help.openmicroscopy.org/urls-to-data.html
-viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314")
+viewer.open("http://yourdomain.example.org/omero/webclient/?show=image-314", plugin="napari-omero")
 ```
 
 these will also work on the napari command line interface, e.g.:
 
 ```bash
-napari omero://Image:1
+# quotes are needed if using zsh
+napari "omero://Image:1"
 # or
-napari http://yourdomain.example.org/omero/webclient/?show=image-314
+napari "http://yourdomain.example.org/omero/webclient/?show=image-314"
 ```
 
 ### as an OMERO CLI plugin
@@ -85,15 +93,16 @@ omero napari view Image:1
 
 While this package supports anything above python 3.9,
 In practice, python support is limited by `omero-py` and `zeroc-ice`,
-compatibility, which is limited to python <=3.10 at the time of writing.
+compatibility, which is limited to python <=3.12 at the time of writing.
 
 ### from conda
 
 It's easiest to install `omero-py` from conda, so the recommended procedure
-is to install everything from conda, using the `conda-forge` channel
+is to install everything from conda, using the `conda-forge` channel.
+For example, to install the plugin, napari, and the default Qt backend, use:
 
 ```sh
-conda install -c conda-forge napari-omero
+conda install -c conda-forge napari-omero pyqt
 ```
 
 ### from pip
@@ -116,13 +125,17 @@ pip install napari-omero[all]  # the [all] here is the same as `napari[all]`
   reports](https://github.com/tlambert03/napari-omero/issues/new) are welcome!
 - remote loading can be very slow still... though this is not strictly an issue
   of this plugin.  Datasets are wrapped as delayed dask stacks, and remote data
-  fetching time can be significant.  Plans for [asynchronous
-  rendering](https://napari.org/guides/stable/rendering.html) in
-  napari and
-  [tiled loading from OMERO](https://github.com/tlambert03/napari-omero/pull/1)
-  may eventually improve the subjective performance... but remote data loading
+  fetching time can be significant.  Enabling [asynchronous
+  rendering](https://napari.org/stable/guides/rendering.html#asynchronous-slicing) in
+  napari improves the subjective performance... but remote data loading
   will likely always be a limitation here.
-  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`.
+  To try asyncronous loading, start the program with `NAPARI_ASYNC=1 napari-omero`
+  or look in the Preferences on the Experimental tab.
+  Also, keep an eye on the [napari progressive loading implementation progress](https://github.com/napari/napari/issues/5561).
+- For plugin developers: As napari-OMERO provides images as lazily-loaded [dask arrays](https://docs.dask.org/en/stable/array.html),
+  napari-plugins need to account for this when retrieving data from napari layers.
+  Keep in mind that forwarding the data to processing steps in plugins may lead to signficant loading
+  and processing times.
 
 ## contributing
 
