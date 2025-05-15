@@ -67,7 +67,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
-          .omero/compose up
+          .omero/compose up -d
 
       - name: Test
         run: pytest --color=yes --cov=napari_omero --cov-report=xml
