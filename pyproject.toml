@@ -70,6 +70,7 @@ all = ["napari[all]"]
 test = [
     "pytest",
     "pytest-cov",
+    "ezomero",
     "pytest-qt",
     "pytest-regressions",
     "pywin32; sys_platform == 'win32'",
