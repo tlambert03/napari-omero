@@ -71,7 +71,7 @@ jobs:
 
       - name: Test including OMERO
         if: runner.os == 'Linux'
-        run: pytest ./test --color=yes --cov=napari_omero --cov-report=xml
+        run: pytest ./tests --color=yes --cov=napari_omero --cov-report=xml
 
       - name: Test local
         if: runner.os != 'Linux'
