@@ -69,8 +69,13 @@ jobs:
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
           .omero/compose up -d
 
-      - name: Test
-        run: pytest --color=yes --cov=napari_omero --cov-report=xml
+      - name: Test including OMERO
+        if: runner.os == 'Linux'
+        run: pytest ./test --color=yes --cov=napari_omero --cov-report=xml
+
+      - name: Test local
+        if: runner.os != 'Linux'
+        run: pytest ./test/local  --color=yes --cov=napari_omero --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v5
