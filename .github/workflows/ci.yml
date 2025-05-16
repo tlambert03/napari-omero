@@ -63,8 +63,19 @@ jobs:
           python -m pip install .[test]
           python -m pip install ${{ matrix.backend }}
 
-      - name: Test
-        run: pytest --color=yes --cov=napari_omero --cov-report=xml
+      - name: Set up OMERO
+        if: runner.os == 'Linux'
+        run: |
+          git clone https://github.com/openmicroscopy/omero-test-infra .omero
+          .omero/compose up -d
+
+      - name: Test including OMERO
+        if: runner.os == 'Linux'
+        run: pytest ./tests --color=yes --cov=napari_omero --cov-report=xml
+
+      - name: Test local
+        if: runner.os != 'Linux'
+        run: pytest ./tests/local  --color=yes --cov=napari_omero --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v5
