@@ -75,7 +75,7 @@ jobs:
 
       - name: Test local
         if: runner.os != 'Linux'
-        run: pytest ./test/local  --color=yes --cov=napari_omero --cov-report=xml
+        run: pytest ./tests/local  --color=yes --cov=napari_omero --cov-report=xml
 
       - name: Codecov
         uses: codecov/codecov-action@v5
