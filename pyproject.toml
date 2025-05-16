@@ -52,7 +52,7 @@ classifiers = [
 ]
 # add your package dependencies here
 dependencies = [
-    "napari>=0.4.13",
+    "napari>=0.5.0",
     "omero-py",
     "omero-rois",
     "omero-marshal",
@@ -60,7 +60,6 @@ dependencies = [
     # but are directly imported here as well so are included explicitly
     "qtpy>=1.10.0",
     "dask[array]>=2021.10.0",
-    "vispy>=0.14.1,<0.15",
     "superqt>=0.6.7",
 ]
 

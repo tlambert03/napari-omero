@@ -21,10 +21,15 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 
 - GUI interface to browse remote OMERO data, with thumbnail previews.
 - Loads remote nD images from an OMERO server into napari
+- Upload annotsations (``Labels`, `Shapes` and `Points`) to OMERO.
 - Planes are loading on demand as sliders are moved ("lazy loading").
+- Loading of pyramidal images as napari multiscale layers
 - session management (login memory)
 - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
+
+> [!NOTE]
+> The user experience when working with remote images, particularly large multiscale (pyramidal) ones, like whole slide images, can be significantly improved by using napari 0.5.0 or newer and enabling the experimental asynchronous mode (n the GUI in `Preferences > Experimental > Render Images Asynchronously` or with the environmental variable `NAPARI_ASYNC=1`).
 
 ### as a napari dock widget
 
