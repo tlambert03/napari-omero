@@ -15,7 +15,7 @@ viewer for python.
 It provides a GUI interface for browsing an OMERO instance from within napari,
 as well as command line interface extensions for both OMERO and napari CLIs.
 
-![demo](https://github.com/tlambert03/napari-omero/blob/master/demo.gif?raw=true)
+![demo](https://github.com/tlambert03/napari-omero/blob/main/demo.gif?raw=true)
 
 ## Features
 
