@@ -241,3 +241,145 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
         pyramid.append(da.stack(t_stacks))
 
     return pyramid
+
+
+def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
+    """Retrieve ROIs from an OMERO image and format them as a single Napari layer."""
+    roi_service = conn.getRoiService()
+    result = roi_service.findByImage(image.getId(), None)
+    img_id = image.getId()
+
+    # Lists to store properties for all shapes
+    all_coords = []
+    all_shape_types = []
+    all_comments = []
+    all_roi_ids = []
+    all_shape_ids = []
+    all_z_indices = []
+    all_t_indices = []
+
+    # Get Z and T dimension ranges for the image
+    size_z = range(image.getSizeZ())
+    size_t = range(image.getSizeT())
+
+    # Get physical pixel sizes; default to 1 if not defined
+    size_x = image.getPixelSizeX() or 1
+    size_y = image.getPixelSizeY() or 1
+    pixel_size_z = image.getPixelSizeZ() or 1
+
+    # Loop through all ROIs
+    for roi in result.rois:
+        roi_id = roi.getId().getValue()
+
+        # Loop through all shapes in each ROI
+        for shape in roi.copyShapes():
+            if shape is None:
+                continue  # Skip empty shapes
+
+            # Parse shape to Napari-compatible format
+            parsed = parse_omero_shape(shape)
+            if parsed is None:
+                continue  # unsupported shape
+
+            coords_2d, meta, _ = parsed
+            coords_2d = [[y, x] for y, x in coords_2d]
+
+            shape_id = shape.getId().getValue()
+            labels = shape.getTextValue()
+            comment = labels.getValue() if labels else ""
+
+            theZ = shape.getTheZ()
+            z_values = [theZ.getValue()] if theZ else list(size_z)
+            theT = shape.getTheT()
+            t_values = [theT.getValue()] if theT else list(size_t)
+
+            # For all combinations of T and Z, create coords
+            for t_index in t_values:
+                for z_index in z_values:
+                    coords_4d = []
+                    for y, x in coords_2d:
+                        coords_4d.append([t_index, z_index, y, x])
+
+                    # Append data for Napari
+                    all_coords.append(coords_4d)
+                    all_shape_types.append(meta["shape_type"])
+                    all_comments.append(comment)
+                    all_roi_ids.append(roi_id)
+                    all_shape_ids.append(shape_id)
+                    all_z_indices.append(z_index)
+                    all_t_indices.append(t_index)
+
+    if not all_coords:
+        return []
+
+    # Define a single metadata dictionary for the layer
+    roi_layer_meta = {
+        "name": f"OMERO ROIs {img_id}",
+        "shape_type": all_shape_types,
+        "edge_width": 1,
+        "edge_color": "#FFFF00",
+        "face_color": "transparent",
+        "scale": (1, pixel_size_z, size_y, size_x),
+        "text": {
+            "string": "{comment}",
+            "size": 7,
+            "color": "white",
+            "anchor": "center",
+        },
+        "properties": {
+            "comment": np.array(all_comments, dtype=object),
+            "roi_id": np.array(all_roi_ids, dtype=object),
+            "shape_id": np.array(all_shape_ids, dtype=object),
+            "z_index": np.array(all_z_indices, dtype=int),
+            "t_index": np.array(all_t_indices, dtype=int),
+            "image_id": np.full(len(all_coords), img_id, dtype=int),
+            },
+    }
+    return [(all_coords, roi_layer_meta, "shapes")]
+
+
+def parse_omero_shape(shape) -> Optional[LayerData]:
+    """Convert an OMERO shape into a Napari-compatible format."""
+    shape_type = shape.__class__.__name__
+
+    if shape_type == "RectangleI":
+        # Get position and size
+        x = float(shape.getX().getValue())
+        y = float(shape.getY().getValue())
+        w = float(shape.getWidth().getValue())
+        h = float(shape.getHeight().getValue())
+
+        # Coordinates for the rectangle corners in (y, x)
+        coords = [[y, x], [y, x + w], [y + h, x + w], [y + h, x]]
+        meta = {"shape_type": "rectangle", "name": "ROI_Rectangle"}
+        return (coords, meta, "shapes")
+
+    elif shape_type == "PolygonI":
+        points = shape.getPoints().getValue()
+        coords = [
+            [float(y), float(x)]
+            for x, y, *_ in (
+                p.split(",") for p in points.split(" ")
+            )
+        ]
+        meta = {"shape_type": "polygon", "name": "ROI_Polygon"}
+        return (coords, meta, "shapes")
+
+    elif shape_type == "EllipseI":
+        cx = float(shape.getX().getValue())
+        cy = float(shape.getY().getValue())
+        rx = float(shape.getRadiusX().getValue())
+        ry = float(shape.getRadiusY().getValue())
+
+        # Compute four corner points of the bounding box
+        top_left = [cy - ry, cx - rx]
+        top_right = [cy - ry, cx + rx]
+        bottom_right = [cy + ry, cx + rx]
+        bottom_left = [cy + ry, cx - rx]
+
+        coords = [top_left, top_right, bottom_right, bottom_left]
+        meta = {"shape_type": "ellipse", "name": "ROI_Ellipse"}
+        return (coords, meta, "shapes")
+
+    # Return None if shape type not supported
+    return None
