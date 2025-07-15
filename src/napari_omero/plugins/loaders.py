@@ -351,7 +351,7 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
 def omero_color_to_hex(color_val) -> str:
     """Convert OMERO ARGB int to hex color string for Napari."""
     if color_val is None:
-        return "transparent"
+        return "translucent"
 
     if hasattr(color_val, "getValue"):
         color_val = color_val.getValue()
