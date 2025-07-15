@@ -6,7 +6,7 @@ from napari.layers import Image, Labels, Shapes
 from napari.utils.notifications import show_info
 
 from napari_omero.plugins.omero import save_rois
-from napari_omero.plugins.loaders import load_rois, load_points
+from napari_omero.plugins.loaders import load_omero
 from napari_omero.utils import lookup_obj
 from magicgui.widgets import PushButton
 from omero.cli import ProxyStringType
@@ -18,10 +18,6 @@ def _init(widget):
     shape_load_button = PushButton(text="Load ROIs from OMERO")
     widget.insert(1, shape_load_button)
     widget.shape_load_button = shape_load_button
-
-    points_load_button = PushButton(text="Load points from OMERO")
-    widget.insert(2, points_load_button)
-    widget.points_load_button = points_load_button
 
     @shape_load_button.clicked.connect
     def _load_rois_from_omero():
@@ -37,44 +33,17 @@ def _init(widget):
         image_id = int(layer_name.split(":")[0])
 
         image_wrapper = gateway.conn.getObject("Image", image_id)
-        roi_layers = load_rois(gateway.conn, image_wrapper)
+        layers = load_omero(gateway.conn, image_wrapper)
 
-        coords_flag = False
-        for coords, meta, _ in roi_layers:
-            coords_flag = True
-            viewer.add_shapes(coords, **meta)
-
-        if coords_flag:
-            show_info(f"Loaded {len(coords)} ROIs from OMERO img id {image_id}.")
-        else:
-            show_info(f"No ROIs found for OMERO image id {image_id}.")
-
-
-    @points_load_button.clicked.connect
-    def _load_points_from_omero():
-        viewer = napari.viewer.current_viewer()
-        image_layer = viewer.layers.selection.active
-
-        if not image_layer or "omero" not in image_layer.metadata:
-            show_info("No OMERO metadata found in selected layer.")
+        if not layers:
+            show_info(f"No ROIs or points found for OMERO image id {image_id}.")
             return
 
-        gateway = QGateWay()
-        layer_name = image_layer.name
-        image_id = int(layer_name.split(":")[0])
-
-        image_wrapper = gateway.conn.getObject("Image", image_id)
-        point_layers = load_points(gateway.conn, image_wrapper)
-
-        points = False
-        for point_coords, meta, _ in point_layers:
-            points = True
-            viewer.add_points(point_coords, **meta)
-
-        if points:
-            show_info(f"Loaded {len(point_coords)} points from OMERO img id {image_id}.")
-        else:
-            show_info(f"No points found for OMERO image id {image_id}.")
+        for coords, meta, layer_type in layers:
+            if layer_type == "shapes":
+                viewer.add_shapes(coords, **meta)
+            elif layer_type == "points":
+                viewer.add_points(coords, **meta)
 
 
 @magic_factory(

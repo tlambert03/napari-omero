@@ -244,7 +244,7 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
     return pyramid
 
 
-def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
+def load_omero(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     """Retrieve ROIs from an OMERO image and format them as a single Napari layer."""
     roi_service = conn.getRoiService()
     result = roi_service.findByImage(image.getId(), None)
@@ -261,6 +261,16 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     all_edge_colors = []
     all_face_colors = []
 
+    # Lists to store properties for all shapes
+    point_coords = []
+    point_comments = []
+    point_shape_ids = []
+    point_roi_ids = []
+    point_z_indices = []
+    point_t_indices = []
+    point_edge_colors = []
+    point_face_colors = []
+
     # Get Z and T dimension ranges for the image
     size_z = range(image.getSizeZ())
     size_t = range(image.getSizeT())
@@ -275,31 +285,30 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
         roi_id = roi.getId().getValue()
         # Loop through all shapes in each ROI
         for shape in roi.copyShapes():
+            if shape is None:
+                show_warning("Encountered an empty (None) shape skipping.")
+                continue
             shape_type = shape.__class__.__name__
-            if shape_type != "PointI":
-                if shape is None:
-                    show_warning("Encountered an empty (None) shape skipping.")
-                    continue
 
+            shape_id = shape.getId().getValue()
+            labels = shape.getTextValue()
+            comment = labels.getValue() if labels else ""
+
+            theZ = shape.getTheZ()
+            z_values = [theZ.getValue()] if theZ else list(size_z)
+            theT = shape.getTheT()
+            t_values = [theT.getValue()] if theT else list(size_t)
+
+            edge_color = shape.getStrokeColor()
+            fill_color = shape.getFillColor()
+            if shape_type != "PointI":
                 # Parse shape to Napari-compatible format
                 parsed = parse_omero_shape(shape)
                 if parsed is None:
                     show_warning(f"Unsupported OMERO shape skipped: {shape_type}")
-                    continue  # unsupported shape
+                    continue
 
                 coords_2d, meta, _ = parsed
-
-                shape_id = shape.getId().getValue()
-                labels = shape.getTextValue()
-                comment = labels.getValue() if labels else ""
-
-                theZ = shape.getTheZ()
-                z_values = [theZ.getValue()] if theZ else list(size_z)
-                theT = shape.getTheT()
-                t_values = [theT.getValue()] if theT else list(size_t)
-
-                edge_color = shape.getStrokeColor()
-                fill_color = shape.getFillColor()
 
                 # For all combinations of T and Z, create coords
                 for t_index in t_values:
@@ -319,39 +328,86 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
                         all_edge_colors.append(omero_color_to_hex(edge_color))
                         all_face_colors.append(omero_color_to_hex(fill_color))
 
-    if not all_coords:
-        return []
+                if not all_coords:
+                    return []
 
-    # Define a single metadata dictionary for the layer
-    roi_layer_meta = {
-        "name": f"OMERO ROIs {img_id}",
-        "shape_type": all_shape_types,
-        "edge_width": 1,
-        "edge_color": all_edge_colors,
-        "face_color": all_face_colors,
-        "scale": (1, pixel_size_z, size_y, size_x),
-        "text": {
-            "string": "{comment}",
-            "size": 7,
-            "color": "white",
-            "anchor": "center",
-        },
-        "features": {
-            "comment": np.array(all_comments, dtype=object),
-            "roi_id": np.array(all_roi_ids, dtype=object),
-            "shape_id": np.array(all_shape_ids, dtype=object),
-            "z_index": np.array(all_z_indices, dtype=int),
-            "t_index": np.array(all_t_indices, dtype=int),
-            "image_id": np.full(len(all_coords), img_id, dtype=int),
+            elif shape_type == "PointI":
+                x = float(shape.getX().getValue())
+                y = float(shape.getY().getValue())
+
+                for t_index in t_values:
+                    for z_index in z_values:
+                        point_coords.append([t_index, z_index, y, x])
+                        point_comments.append(comment)
+                        point_shape_ids.append(shape_id)
+                        point_roi_ids.append(roi_id)
+                        point_z_indices.append(z_index)
+                        point_t_indices.append(t_index)
+                        point_edge_colors.append(omero_color_to_hex(edge_color))
+                        point_face_colors.append(omero_color_to_hex(fill_color))
+
+                if not point_coords:
+                    return []
+
+    # ---- Create layers list ----
+    layers = []
+
+    # Add shapes layer if available
+    if all_coords:
+        # Define a single metadata dictionary for the layer
+        roi_layer_meta = {
+            "name": f"OMERO ROIs {img_id}",
+            "shape_type": all_shape_types,
+            "edge_width": 1,
+            "edge_color": all_edge_colors,
+            "face_color": all_face_colors,
+            "scale": (1, pixel_size_z, size_y, size_x),
+            "text": {
+                "string": "{comment}",
+                "size": 7,
+                "color": "white",
+                "anchor": "center",
             },
-    }
-    return [(all_coords, roi_layer_meta, "shapes")]
+            "features": {
+                "comment": np.array(all_comments, dtype=object),
+                "roi_id": np.array(all_roi_ids, dtype=object),
+                "shape_id": np.array(all_shape_ids, dtype=object),
+                "z_index": np.array(all_z_indices, dtype=int),
+                "t_index": np.array(all_t_indices, dtype=int),
+                "image_id": np.full(len(all_coords), img_id, dtype=int),
+                },
+        }
+
+        layers.append((all_coords, roi_layer_meta, "shapes"))
+
+    # Add points layer if available
+    if point_coords:
+        point_layer_meta = {
+            "name": f"OMERO Points {img_id}",
+            "symbol": "o",
+            "border_color": point_edge_colors,
+            "face_color": point_face_colors,
+            "size": 5,
+            "scale": (1, pixel_size_z, size_y, size_x),
+            "text": {"string": "{comment}", "size": 7, "color": "yellow"},
+            "features": {
+                "comment": np.array(point_comments, dtype=object),
+                "roi_id": np.array(point_roi_ids, dtype=object),
+                "shape_id": np.array(point_shape_ids, dtype=object),
+                "z_index": np.array(point_z_indices, dtype=int),
+                "t_index": np.array(point_t_indices, dtype=int),
+                "image_id": np.full(len(point_coords), img_id, dtype=int),
+            },
+        }
+        layers.append((point_coords, point_layer_meta, "points"))
+
+    return layers
 
 
 def omero_color_to_hex(color_val) -> str:
     """Convert OMERO ARGB int to hex color string for Napari."""
     if color_val is None:
-        return "translucent"
+        return "white"
 
     if hasattr(color_val, "getValue"):
         color_val = color_val.getValue()
@@ -415,90 +471,3 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
     # Return None if shape type not supported
     return None
 
-
-def load_points(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
-    """Retrieve Points from an OMERO image and format them as a single Napari layer."""
-    roi_service = conn.getRoiService()
-    result = roi_service.findByImage(image.getId(), None)
-    img_id = image.getId()
-
-    # Lists to store properties for all shapes
-    point_coords = []
-    point_comments = []
-    point_shape_ids = []
-    point_roi_ids = []
-    point_z_indices = []
-    point_t_indices = []
-    point_edge_colors = []
-    point_face_colors = []
-
-    # Get Z and T dimension ranges for the image
-    size_z = range(image.getSizeZ())
-    size_t = range(image.getSizeT())
-
-    # Get physical pixel sizes; default to 1 if not defined
-    size_x = image.getPixelSizeX() or 1
-    size_y = image.getPixelSizeY() or 1
-    pixel_size_z = image.getPixelSizeZ() or 1
-
-    # Loop through all ROIs
-    for roi in result.rois:
-        roi_id = roi.getId().getValue()
-
-        # Loop through all shapes in each ROI
-        for shape in roi.copyShapes():
-            shape_type = shape.__class__.__name__
-            if shape_type == "PointI":
-                if shape is None:
-                    show_warning("Encountered an empty shape skipping.")
-                    continue
-
-                shape_id = shape.getId().getValue()
-                labels = shape.getTextValue()
-                comment = labels.getValue() if labels else ""
-
-                theZ = shape.getTheZ()
-                z_values = [theZ.getValue()] if theZ else list(size_z)
-                theT = shape.getTheT()
-                t_values = [theT.getValue()] if theT else list(size_t)
-
-                edge_color = shape.getStrokeColor()
-                fill_color = shape.getFillColor()
-
-                x = float(shape.getX().getValue())
-                y = float(shape.getY().getValue())
-
-                for t in t_values:
-                    for z in z_values:
-                        point_coords.append([t, z, y, x])
-                        point_comments.append(comment)
-                        point_shape_ids.append(shape_id)
-                        point_roi_ids.append(roi_id)
-                        point_z_indices.append(z)
-                        point_t_indices.append(t)
-                        point_edge_colors.append(omero_color_to_hex(edge_color))
-                        point_face_colors.append(omero_color_to_hex(fill_color))
-                continue
-
-    if not point_coords:
-        return []
-
-    # Define a single metadata dictionary for the layer
-    point_layer_meta = {
-            "name": f"OMERO Points {img_id}",
-            "symbol": "o",
-            "edge_color": point_edge_colors,
-            "face_color": point_face_colors,
-            "size": 5,
-            "scale": (1, pixel_size_z, size_y, size_x),
-            "text": {"string": "{comment}", "size": 7, "color": "yellow"},
-            "features": {
-                "comment": np.array(point_comments, dtype=object),
-                "roi_id": np.array(point_roi_ids, dtype=object),
-                "shape_id": np.array(point_shape_ids, dtype=object),
-                "z_index": np.array(point_z_indices, dtype=int),
-                "t_index": np.array(point_t_indices, dtype=int),
-                "image_id": np.full(len(point_coords), img_id, dtype=int),
-            },
-        }
-    return [(point_coords, point_layer_meta, "points")]
