@@ -6,16 +6,16 @@ from napari.layers import Image, Labels, Shapes
 from napari.utils.notifications import show_info
 
 from napari_omero.plugins.omero import save_rois
-from napari_omero.plugins.loaders import load_omero
+from napari_omero.plugins.loaders import load_rois
 from napari_omero.utils import lookup_obj
 from magicgui.widgets import PushButton
 from omero.cli import ProxyStringType
 
 from .gateway import QGateWay
-import re
+
 
 def _init(widget):
-    shape_load_button = PushButton(text="Load ROIs from OMERO")
+    shape_load_button = PushButton(text="Load OMERO ROIs and Points")
     widget.insert(1, shape_load_button)
     widget.shape_load_button = shape_load_button
 
@@ -30,20 +30,23 @@ def _init(widget):
 
         gateway = QGateWay()
         layer_name = image_layer.name
-        image_id = int(layer_name.split(":")[0])
+        img_id = int(layer_name.split(":")[0])
 
-        image_wrapper = gateway.conn.getObject("Image", image_id)
-        layers = load_omero(gateway.conn, image_wrapper)
+        image_wrapper = gateway.conn.getObject("Image", img_id)
+        points_coords, points_meta = load_rois(gateway.conn,
+                                               image_wrapper,
+                                               load_points=True)
+        shapes_coords, shapes_meta = load_rois(gateway.conn,
+                                               image_wrapper,
+                                               load_points=False)
 
-        if not layers:
-            show_info(f"No ROIs or points found for OMERO image id {image_id}.")
+        if points_meta is None and shapes_meta is None:
+            show_info(f"No ROIs or points found for OMERO image id {img_id}.")
             return
-
-        for coords, meta, layer_type in layers:
-            if layer_type == "shapes":
-                viewer.add_shapes(coords, **meta)
-            elif layer_type == "points":
-                viewer.add_points(coords, **meta)
+        if shapes_meta:
+            viewer.add_shapes(shapes_coords, **shapes_meta)
+        if points_meta:
+            viewer.add_points(points_coords, **points_meta)
 
 
 @magic_factory(
