@@ -15,7 +15,7 @@ from .gateway import QGateWay
 
 
 def _init(widget):
-    shape_load_button = PushButton(text="Load OMERO ROIs and Points")
+    shape_load_button = PushButton(text="Load Annotations from OMERO")
     widget.insert(1, shape_load_button)
     widget.shape_load_button = shape_load_button
 
