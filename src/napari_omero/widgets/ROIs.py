@@ -39,10 +39,15 @@ def _init(widget):
         image_wrapper = gateway.conn.getObject("Image", image_id)
         roi_layers = load_rois(gateway.conn, image_wrapper)
 
+        coords_flag = False
         for coords, meta, _ in roi_layers:
+            coords_flag = True
             viewer.add_shapes(coords, **meta)
 
-        show_info(f"Loaded {len(coords)} ROIs from OMERO img id {image_id}.")
+        if coords_flag:
+            show_info(f"Loaded {len(coords)} ROIs from OMERO img id {image_id}.")
+        else:
+            show_info(f"No ROIs found for OMERO image id {image_id}.")
 
 
     @points_load_button.clicked.connect
@@ -73,7 +78,7 @@ def _init(widget):
 
 
 @magic_factory(
-    omero_image={"label": "Layer from OMERO to annotate"},
+    omero_image={"label": "OMERO ROI Manager"},
     call_button="Upload Annotations to OMERO",
     widget_init=_init
 )

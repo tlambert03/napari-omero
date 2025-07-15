@@ -258,6 +258,8 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     all_shape_ids = []
     all_z_indices = []
     all_t_indices = []
+    all_edge_colors = []
+    all_face_colors = []
 
     # Get Z and T dimension ranges for the image
     size_z = range(image.getSizeZ())
@@ -271,7 +273,6 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     # Loop through all ROIs
     for roi in result.rois:
         roi_id = roi.getId().getValue()
-
         # Loop through all shapes in each ROI
         for shape in roi.copyShapes():
             shape_type = shape.__class__.__name__
@@ -297,6 +298,9 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
                 theT = shape.getTheT()
                 t_values = [theT.getValue()] if theT else list(size_t)
 
+                edge_color = shape.getStrokeColor()
+                fill_color = shape.getFillColor()
+
                 # For all combinations of T and Z, create coords
                 for t_index in t_values:
                     for z_index in z_values:
@@ -312,6 +316,8 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
                         all_shape_ids.append(shape_id)
                         all_z_indices.append(z_index)
                         all_t_indices.append(t_index)
+                        all_edge_colors.append(omero_color_to_hex(edge_color))
+                        all_face_colors.append(omero_color_to_hex(fill_color))
 
     if not all_coords:
         return []
@@ -321,8 +327,8 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
         "name": f"OMERO ROIs {img_id}",
         "shape_type": all_shape_types,
         "edge_width": 1,
-        "edge_color": "#FFFF00",
-        "face_color": "transparent",
+        "edge_color": all_edge_colors,
+        "face_color": all_face_colors,
         "scale": (1, pixel_size_z, size_y, size_x),
         "text": {
             "string": "{comment}",
@@ -342,10 +348,31 @@ def load_rois(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     return [(all_coords, roi_layer_meta, "shapes")]
 
 
+def omero_color_to_hex(color_val) -> str:
+    """Convert OMERO ARGB int to hex color string for Napari."""
+    if color_val is None:
+        return "transparent"
+
+    if hasattr(color_val, "getValue"):
+        color_val = color_val.getValue()
+
+    # Convert signed to unsigned 32-bit
+    val = color_val & 0xFFFFFFFF
+
+    # Extract RGBA
+    r = (val >> 24) & 0xFF
+    g = (val >> 16) & 0xFF
+    b = (val >> 8) & 0xFF
+    a = val & 0xFF
+
+    hexa_decimal = f"#{r:02X}{g:02X}{b:02X}"
+
+    return hexa_decimal
+
+
 def parse_omero_shape(shape) -> Optional[LayerData]:
     """Convert an OMERO shape into a Napari-compatible format."""
     shape_type = shape.__class__.__name__
-
     if shape_type == "RectangleI":
         # Get position and size
         x = float(shape.getX().getValue())
@@ -402,6 +429,8 @@ def load_points(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     point_roi_ids = []
     point_z_indices = []
     point_t_indices = []
+    point_edge_colors = []
+    point_face_colors = []
 
     # Get Z and T dimension ranges for the image
     size_z = range(image.getSizeZ())
@@ -433,6 +462,9 @@ def load_points(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
                 theT = shape.getTheT()
                 t_values = [theT.getValue()] if theT else list(size_t)
 
+                edge_color = shape.getStrokeColor()
+                fill_color = shape.getFillColor()
+
                 x = float(shape.getX().getValue())
                 y = float(shape.getY().getValue())
 
@@ -444,6 +476,8 @@ def load_points(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
                         point_roi_ids.append(roi_id)
                         point_z_indices.append(z)
                         point_t_indices.append(t)
+                        point_edge_colors.append(omero_color_to_hex(edge_color))
+                        point_face_colors.append(omero_color_to_hex(fill_color))
                 continue
 
     if not point_coords:
@@ -453,8 +487,8 @@ def load_points(conn: BlitzGateway, image: ImageWrapper) -> list[LayerData]:
     point_layer_meta = {
             "name": f"OMERO Points {img_id}",
             "symbol": "o",
-            "face_color": "transparent",
-            "border_color": "#FFFF00",
+            "edge_color": point_edge_colors,
+            "face_color": point_face_colors,
             "size": 5,
             "scale": (1, pixel_size_z, size_y, size_x),
             "text": {"string": "{comment}", "size": 7, "color": "yellow"},
