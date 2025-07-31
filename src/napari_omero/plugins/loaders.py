@@ -380,7 +380,6 @@ def omero_color_to_hex(color_val) -> str:
     r = (val >> 24) & 0xFF
     g = (val >> 16) & 0xFF
     b = (val >> 8) & 0xFF
-    val & 0xFF
 
     hexa_decimal = f"#{r:02X}{g:02X}{b:02X}"
 
