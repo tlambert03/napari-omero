@@ -7,8 +7,8 @@ import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
-from omero_marshal import get_encoder
 from napari.utils.notifications import show_warning
+from omero_marshal import get_encoder
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
@@ -244,12 +244,10 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
     return pyramid
 
 
-def load_rois(conn: BlitzGateway,
-              image: ImageWrapper,
-              load_points: bool) -> list[LayerData]:
-    """
-    Load ROIs from an OMERO image and formats their coordinates and metadata.
-    """
+def load_rois(
+    conn: BlitzGateway, image: ImageWrapper, load_points: bool
+) -> list[LayerData]:
+    """Load ROIs from an OMERO image and formats their coordinates and metadata."""
     roi_service = conn.getRoiService()
     result = roi_service.findByImage(image.getId(), None)
     img_id = image.getId()
@@ -283,8 +281,9 @@ def load_rois(conn: BlitzGateway,
                 show_warning("Encountered an empty (None) shape skipping.")
                 continue
             sh_type = shape.__class__.__name__
-            if ((sh_type != "PointI" and load_points)
-               or (sh_type == "PointI" and not load_points)):
+            if (sh_type != "PointI" and load_points) or (
+                sh_type == "PointI" and not load_points
+            ):
                 continue
 
             shape_id = shape.getId().getValue()
@@ -381,7 +380,7 @@ def omero_color_to_hex(color_val) -> str:
     r = (val >> 24) & 0xFF
     g = (val >> 16) & 0xFF
     b = (val >> 8) & 0xFF
-    a = val & 0xFF
+    val & 0xFF
 
     hexa_decimal = f"#{r:02X}{g:02X}{b:02X}"
 
@@ -407,9 +406,7 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
         points = shape.getPoints().getValue()
         coords = [
             [float(y), float(x)]
-            for x, y, *_ in (
-                p.split(",") for p in points.split(" ")
-            )
+            for x, y, *_ in (p.split(",") for p in points.split(" "))
         ]
         meta = {"shape_type": "polygon", "name": "ROI_Polygon"}
         return (coords, meta, "shapes")
@@ -432,4 +429,3 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
 
     # Return None if shape type not supported
     return None
-
