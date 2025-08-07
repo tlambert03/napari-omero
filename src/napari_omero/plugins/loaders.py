@@ -289,6 +289,7 @@ def load_rois(
             labels = shape.getTextValue()
             comment = labels.getValue() if labels else ""
 
+            # Use shape's Z/T if set, else apply to all slices (T, Z)
             theZ = shape.getTheZ()
             z_values = [theZ.getValue()] if theZ else list(size_z)
             theT = shape.getTheT()
@@ -316,7 +317,6 @@ def load_rois(
                 # Reshape into list of shape instances (1 per tz)
                 repeated_coords = full_coords.reshape(count, len(coords_2d), 4)
                 all_coords.extend(repeated_coords)
-                print("all_coords shape", all_coords)
                 all_shape_types.extend([meta["shape_type"]] * count)
             else:
                 x = float(shape.getX().getValue())
@@ -325,7 +325,6 @@ def load_rois(
                 coords_tiled = np.tile(coords_2d, (count, 1))           # (T*Z, 2)
                 full_coords = np.hstack([tz, coords_tiled])             # (T*Z, 4)
                 all_coords.extend(full_coords)
-                print("all_coords points", all_coords)
 
             # Extend metadata
             all_comments.extend([comment] * count)
