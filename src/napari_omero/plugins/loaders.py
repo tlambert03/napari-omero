@@ -248,6 +248,7 @@ def load_rois(
     conn: BlitzGateway, image: ImageWrapper, load_points: bool
 ) -> list[LayerData]:
     """Load ROIs from an OMERO image and formats their coordinates and metadata."""
+    np.set_printoptions(suppress=True, precision=6)
     roi_service = conn.getRoiService()
     result = roi_service.findByImage(image.getId(), None)
     img_id = image.getId()
@@ -258,8 +259,6 @@ def load_rois(
     all_comments = []
     all_roi_ids = []
     all_shape_ids = []
-    all_z_indices = []
-    all_t_indices = []
     all_edge_colors = []
     all_face_colors = []
 
@@ -295,6 +294,11 @@ def load_rois(
             theT = shape.getTheT()
             t_values = [theT.getValue()] if theT else list(size_t)
 
+            # Make meshgrid of (t, z)
+            T, Z = np.meshgrid(t_values, z_values, indexing="ij")       # (T, Z)
+            tz = np.stack([T.ravel(), Z.ravel()], axis=1)               # (T*Z, 2)
+            count = len(tz)
+
             edge_color = shape.getStrokeColor()
             fill_color = shape.getFillColor()
             if not load_points:
@@ -305,29 +309,30 @@ def load_rois(
                     continue
                 coords_2d, meta, _ = parsed
 
-            # For all combinations of T and Z, create coords
-            for t_index in t_values:
-                for z_index in z_values:
-                    coords = []
-                    if not load_points:
-                        for y, x in coords_2d:
-                            coords.append([t_index, z_index, y, x])
-                    else:
-                        x = float(shape.getX().getValue())
-                        y = float(shape.getY().getValue())
-                        coords = [t_index, z_index, y, x]
-                    # Append data for Napari
-                    all_coords.append(coords)
-                    all_comments.append(comment)
-                    all_roi_ids.append(roi_id)
-                    all_shape_ids.append(shape_id)
-                    all_z_indices.append(z_index)
-                    all_t_indices.append(t_index)
-                    all_edge_colors.append(omero_color_to_hex(edge_color))
-                    all_face_colors.append(omero_color_to_hex(fill_color))
+                tz_repeated = np.repeat(tz, len(coords_2d), axis=0)     # (T*Z*N, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))           # (T*Z*N, 2)
+                full_coords = np.hstack([tz_repeated, coords_tiled])    # (T*Z*N, 4)
 
-                    if not load_points:
-                        all_shape_types.append(meta["shape_type"])
+                # Reshape into list of shape instances (1 per tz)
+                repeated_coords = full_coords.reshape(count, len(coords_2d), 4)
+                all_coords.extend(repeated_coords)
+                print("all_coords shape", all_coords)
+                all_shape_types.extend([meta["shape_type"]] * count)
+            else:
+                x = float(shape.getX().getValue())
+                y = float(shape.getY().getValue())
+                coords_2d = np.array([[y, x]])                          # (1, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))           # (T*Z, 2)
+                full_coords = np.hstack([tz, coords_tiled])             # (T*Z, 4)
+                all_coords.extend(full_coords)
+                print("all_coords points", all_coords)
+
+            # Extend metadata
+            all_comments.extend([comment] * count)
+            all_roi_ids.extend([roi_id] * count)
+            all_shape_ids.extend([shape_id] * count)
+            all_edge_colors.extend([omero_color_to_hex(edge_color)] * count)
+            all_face_colors.extend([omero_color_to_hex(fill_color)] * count)
 
     roi_layer_meta = None
     if all_coords:
@@ -338,14 +343,11 @@ def load_rois(
             "text": {
                 "string": "{comment}",
                 "size": 7,
-                "color": "white",
             },
             "features": {
                 "comment": np.array(all_comments, dtype=object),
                 "roi_id": np.array(all_roi_ids, dtype=object),
                 "shape_id": np.array(all_shape_ids, dtype=object),
-                "z_index": np.array(all_z_indices, dtype=int),
-                "t_index": np.array(all_t_indices, dtype=int),
                 "image_id": np.full(len(all_coords), img_id, dtype=int),
             },
         }
@@ -355,7 +357,6 @@ def load_rois(
             roi_layer_meta["shape_type"] = all_shape_types
             roi_layer_meta["edge_width"] = 1
             roi_layer_meta["edge_color"] = all_edge_colors
-            roi_layer_meta["text"]["anchor"] = "center"
         else:  # specific metadata for points
             roi_layer_meta["name"] = f"OMERO Points {img_id}"
             roi_layer_meta["symbol"] = "o"
@@ -397,18 +398,18 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
         h = float(shape.getHeight().getValue())
 
         # Coordinates for the rectangle corners in (y, x)
-        coords = [[y, x], [y, x + w], [y + h, x + w], [y + h, x]]
+        coords = np.array([[y, x], [y, x + w], [y + h, x + w], [y + h, x]])
         meta = {"shape_type": "rectangle", "name": "ROI_Rectangle"}
-        return (coords, meta, "shapes")
+        return coords, meta, "shapes"
 
     elif shape_type == "PolygonI":
         points = shape.getPoints().getValue()
-        coords = [
+        coords = np.array([
             [float(y), float(x)]
             for x, y, *_ in (p.split(",") for p in points.split(" "))
-        ]
+        ])
         meta = {"shape_type": "polygon", "name": "ROI_Polygon"}
-        return (coords, meta, "shapes")
+        return coords, meta, "shapes"
 
     elif shape_type == "EllipseI":
         cx = float(shape.getX().getValue())
@@ -422,9 +423,9 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
         bottom_right = [cy + ry, cx + rx]
         bottom_left = [cy + ry, cx - rx]
 
-        coords = [top_left, top_right, bottom_right, bottom_left]
+        coords = np.array([top_left, top_right, bottom_right, bottom_left])
         meta = {"shape_type": "ellipse", "name": "ROI_Ellipse"}
-        return (coords, meta, "shapes")
+        return coords, meta, "shapes"
 
     # Return None if shape type not supported
     return None
