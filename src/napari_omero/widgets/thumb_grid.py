@@ -135,16 +135,24 @@ class ThumbGrid(QListWidget):
         img = QImage()
         img.loadFromData(bytes_)
         icon = QIcon(QPixmap.fromImage(img))
-        name = wrapper.getName()
-        if len(name) > 18:
-            name = f"{name[:15]}..."
-        item = QListWidgetItem(icon, name)
-        item.setTextAlignment(
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
-        )
+
+        # Create a QListWidgetItem
+        item = QListWidgetItem()
         item.wrapper = wrapper
-        self._item_map[wrapper.getId()] = item
+        
+        # Create custom widget
+        thumb_widget = ThumbItemWidget(icon, wrapper)
+        
+        # Set item size to match widget size
+        item.setSizeHint(thumb_widget.size())
+        
+        # Add item to list and set custom widget
         self.addItem(item)
+        self.setItemWidget(item, thumb_widget)
+        
+        # Store in item map
+        self._item_map[wrapper.getId()] = item
+        
         if (
             isinstance(self._current_item, OMEROTreeItem)
             and self._current_item.isImage()
