@@ -8,7 +8,7 @@ from qtpy.QtWidgets import (QListWidget, QListWidgetItem, QWidget, QVBoxLayout,
 from .gateway import QGateWay
 from .tree_model import OMEROTreeItem
 
-THUMBSIZE = 96
+THUMBSIZE = 192
 
 
 class ThumbItemWidget(QWidget):
