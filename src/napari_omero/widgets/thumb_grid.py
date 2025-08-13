@@ -2,8 +2,16 @@ from typing import Optional
 
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon, QImage, QPixmap
-from qtpy.QtWidgets import (QListWidget, QListWidgetItem, QWidget, QVBoxLayout, 
-                            QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QSizePolicy)
+from qtpy.QtWidgets import (
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .gateway import QGateWay
 from .tree_model import OMEROTreeItem
@@ -13,11 +21,11 @@ THUMBSIZE = 192
 
 class ThumbItemWidget(QWidget):
     """Custom widget that displays an icon with a table of properties below."""
-    
+
     def __init__(self, icon: QIcon, wrapper, parent=None):
         super().__init__(parent)
         self.wrapper = wrapper
-        
+
         layout = QVBoxLayout(self)
 
         # Icon label
@@ -25,7 +33,7 @@ class ThumbItemWidget(QWidget):
         icon_label.setPixmap(icon.pixmap(THUMBSIZE, THUMBSIZE))
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(icon_label)
-        
+
         # Name label
         name_label = QLabel(wrapper.getName())
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -38,7 +46,10 @@ class ThumbItemWidget(QWidget):
             ("ID", str(wrapper.getId())),
             ("Timepoints", f"{wrapper.getSizeT()}"),
             ("Channels", f"{wrapper.getSizeC()}"),
-            ("Shape", f"{wrapper.getSizeZ()}x{wrapper.getSizeY()}x{wrapper.getSizeX()}"),
+            (
+                "Shape",
+                f"{wrapper.getSizeZ()}x{wrapper.getSizeY()}x{wrapper.getSizeX()}",
+            ),
         ]
 
         # Properties table
@@ -47,11 +58,11 @@ class ThumbItemWidget(QWidget):
         table.verticalHeader().setVisible(False)
         table.horizontalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        
+
         for row, (prop, value) in enumerate(properties):
             table.setItem(row, 0, QTableWidgetItem(prop))
             table.setItem(row, 1, QTableWidgetItem(value))
-        
+
         layout.addWidget(table)
 
         # Resize table to content
@@ -59,11 +70,12 @@ class ThumbItemWidget(QWidget):
         table.resizeColumnToContents(0)
         table.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         table.setMaximumWidth(THUMBSIZE)  # Allow some padding for the table
-        
+
         # Set size policy for the entire widget to be flexible
-        #self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setFixedHeight(THUMBSIZE + len(properties) * 20 + 70)
         self.setFixedWidth(THUMBSIZE)
+
 
 class ThumbGrid(QListWidget):
     def __init__(self, gateway: QGateWay, parent=None):
@@ -139,20 +151,20 @@ class ThumbGrid(QListWidget):
         # Create a QListWidgetItem
         item = QListWidgetItem()
         item.wrapper = wrapper
-        
+
         # Create custom widget
         thumb_widget = ThumbItemWidget(icon, wrapper)
-        
+
         # Set item size to match widget size
         item.setSizeHint(thumb_widget.size())
-        
+
         # Add item to list and set custom widget
         self.addItem(item)
         self.setItemWidget(item, thumb_widget)
-        
+
         # Store in item map
         self._item_map[wrapper.getId()] = item
-        
+
         if (
             isinstance(self._current_item, OMEROTreeItem)
             and self._current_item.isImage()
