@@ -10,6 +10,60 @@ from .tree_model import OMEROTreeItem
 THUMBSIZE = 96
 
 
+class ThumbItemWidget(QWidget):
+    """Custom widget that displays an icon with a table of properties below."""
+    
+    def __init__(self, icon: QIcon, wrapper, parent=None):
+        super().__init__(parent)
+        self.wrapper = wrapper
+        
+        layout = QVBoxLayout(self)
+
+        # Icon label
+        icon_label = QLabel()
+        icon_label.setPixmap(icon.pixmap(THUMBSIZE, THUMBSIZE))
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(icon_label)
+        
+        # Name label
+        name_label = QLabel(wrapper.getName())
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_label.setStyleSheet("font-weight: bold; color: white;")
+        name_label.setWordWrap(True)
+        layout.addWidget(name_label)
+
+        # Properties to display
+        properties = [
+            ("ID", str(wrapper.getId())),
+            ("Timepoints", f"{wrapper.getSizeT()}"),
+            ("Channels", f"{wrapper.getSizeC()}"),
+            ("Shape", f"{wrapper.getSizeZ()}x{wrapper.getSizeY()}x{wrapper.getSizeX()}"),
+        ]
+
+        # Properties table
+        table = QTableWidget(len(properties), 2)
+        table.setHorizontalHeaderLabels(["Property", "Value"])
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setVisible(False)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
+        for row, (prop, value) in enumerate(properties):
+            table.setItem(row, 0, QTableWidgetItem(prop))
+            table.setItem(row, 1, QTableWidgetItem(value))
+        
+        layout.addWidget(table)
+
+        # Resize table to content
+        table.resizeRowsToContents()
+        table.resizeColumnToContents(0)
+        table.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        table.setMaximumWidth(THUMBSIZE)  # Allow some padding for the table
+        
+        # Set size policy for the entire widget to be flexible
+        #self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setFixedHeight(THUMBSIZE + len(properties) * 20 + 70)
+        self.setFixedWidth(THUMBSIZE)
+
 class ThumbGrid(QListWidget):
     def __init__(self, gateway: QGateWay, parent=None):
         super().__init__(parent)
