@@ -2,7 +2,8 @@ from typing import Optional
 
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon, QImage, QPixmap
-from qtpy.QtWidgets import QListWidget, QListWidgetItem
+from qtpy.QtWidgets import (QListWidget, QListWidgetItem, QWidget, QVBoxLayout, 
+                            QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QSizePolicy)
 
 from .gateway import QGateWay
 from .tree_model import OMEROTreeItem
