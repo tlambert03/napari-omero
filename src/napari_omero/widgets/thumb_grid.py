@@ -73,6 +73,7 @@ class ThumbGrid(QListWidget):
         self.setResizeMode(QListWidget.Adjust)
         self.loader = None
         self.setStyleSheet("QListView {font-size: 8px; background: black};")
+        self.setDragDropMode(QListWidget.DragDropMode.NoDragDrop)
         self.setSpacing(4)
         self._current_dataset: Optional[OMEROTreeItem] = None
         self._current_item: Optional[OMEROTreeItem] = None
