@@ -75,7 +75,7 @@ class ThumbItemWidget(QWidget):
 
         # Set size policy for the entire widget to be flexible
         # self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setFixedHeight(THUMBSIZE + len(properties) * 20 + 70)
+        self.setFixedHeight(icon_height + len(properties) * 20 + 70)
         self.setFixedWidth(THUMBSIZE)
 
 
