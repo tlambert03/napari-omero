@@ -30,7 +30,9 @@ class ThumbItemWidget(QWidget):
 
         # Icon label
         icon_label = QLabel()
-        icon_label.setPixmap(icon.pixmap(THUMBSIZE, THUMBSIZE))
+        pixmap = icon.pixmap(THUMBSIZE, THUMBSIZE)
+        icon_height = pixmap.height()
+        icon_label.setPixmap(pixmap)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(icon_label)
 
