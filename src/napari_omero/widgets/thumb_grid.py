@@ -34,14 +34,12 @@ class ThumbItemWidget(QWidget):
         pixmap.height()
         icon_label.setPixmap(pixmap)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(icon_label)
 
         # Name label
         name_label = QLabel(wrapper.getName())
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_label.setStyleSheet("font-weight: bold; color: white;")
         name_label.setWordWrap(True)
-        layout.addWidget(name_label)
 
         # Properties to display
         properties = [
@@ -65,7 +63,6 @@ class ThumbItemWidget(QWidget):
             table.setItem(row, 0, QTableWidgetItem(prop))
             table.setItem(row, 1, QTableWidgetItem(value))
 
-        layout.addWidget(table)
 
         # Resize table to content
         table.resizeRowsToContents()
@@ -77,6 +74,10 @@ class ThumbItemWidget(QWidget):
         # self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setFixedHeight(icon_height + len(properties) * 20 + 70)
         self.setFixedWidth(THUMBSIZE)
+        layout.addWidget(icon_label)
+        layout.addWidget(name_label)
+        layout.addWidget(table)
+        self.setLayout(layout)
 
 
 class ThumbGrid(QListWidget):
