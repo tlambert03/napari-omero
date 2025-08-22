@@ -3,6 +3,7 @@ from typing import Optional
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon, QImage, QPixmap
 from qtpy.QtWidgets import (
+    QHeaderView,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -10,7 +11,6 @@ from qtpy.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
-    QHeaderView
 )
 
 from .gateway import QGateWay
@@ -83,8 +83,6 @@ class ThumbItemWidget(QWidget):
         self.setMinimumWidth(icon_width)
         self.setMaximumWidth(192)
         self.setFixedHeight(icon_height + name_label.height() + table.height())
-
-
 
 
 class ThumbGrid(QListWidget):
