@@ -56,7 +56,6 @@ class ThumbItemWidget(QWidget):
 
         # Properties table
         table = QTableWidget(len(properties), 2)
-        table.setHorizontalHeaderLabels(["Property", "Value"])
         table.verticalHeader().setVisible(False)
         table.horizontalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
