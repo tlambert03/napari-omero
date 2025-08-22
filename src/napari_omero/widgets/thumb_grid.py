@@ -46,8 +46,8 @@ class ThumbItemWidget(QWidget):
         # Properties to display
         properties = [
             ("ID", str(wrapper.getId())),
-            ("Timepoints", f"{wrapper.getSizeT()}"),
-            ("Channels", f"{wrapper.getSizeC()}"),
+            ("T", f"{wrapper.getSizeT()}"),
+            ("Ch", f"{wrapper.getSizeC()}"),
             (
                 "Shape",
                 f"{wrapper.getSizeZ()}x{wrapper.getSizeY()}x{wrapper.getSizeX()}",
