@@ -64,17 +64,16 @@ class ThumbItemWidget(QWidget):
             table.setItem(row, 0, QTableWidgetItem(prop))
             table.setItem(row, 1, QTableWidgetItem(value))
 
+        table.setWordWrap(True)
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Resize table to content
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.resizeRowsToContents()
-        table.resizeColumnToContents(0)
-        table.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
-        table.setMaximumWidth(THUMBSIZE)  # Allow some padding for the table
+        table.setFixedHeight(table.rowHeight(0) * len(properties) + 4)
 
-        # Set size policy for the entire widget to be flexible
-        # self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setFixedHeight(icon_height + len(properties) * 20 + 70)
-        self.setFixedWidth(THUMBSIZE)
         layout.addWidget(icon_label)
         layout.addWidget(name_label)
         layout.addWidget(table)
