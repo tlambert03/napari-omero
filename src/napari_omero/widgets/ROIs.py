@@ -19,9 +19,15 @@ def _init(widget):
     widget.insert(1, shape_load_button)
     widget.shape_load_button = shape_load_button
 
+    viewer = napari.viewer.current_viewer()
+
+    @viewer.layers.events.inserted.connect
+    def _auto_select(event):
+        if widget.omero_image.choices:
+            widget.omero_image.value = widget.omero_image.choices[-1]
+
     @shape_load_button.clicked.connect
     def _load_rois_from_omero():
-        viewer = napari.viewer.current_viewer()
         image_layer = widget.omero_image.value
 
         if not image_layer or "omero" not in image_layer.metadata:
