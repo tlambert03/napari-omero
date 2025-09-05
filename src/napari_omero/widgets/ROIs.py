@@ -22,7 +22,7 @@ def _init(widget):
     @shape_load_button.clicked.connect
     def _load_rois_from_omero():
         viewer = napari.viewer.current_viewer()
-        image_layer = viewer.layers.selection.active
+        image_layer = widget.omero_image.value
 
         if not image_layer or "omero" not in image_layer.metadata:
             show_info("No OMERO metadata found in selected layer.")
