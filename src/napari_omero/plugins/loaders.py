@@ -248,7 +248,6 @@ def load_rois(
     conn: BlitzGateway, image: ImageWrapper, load_points: bool
 ) -> list[LayerData]:
     """Load ROIs from an OMERO image and formats their coordinates and metadata."""
-
     roi_service = conn.getRoiService()
     result = roi_service.findByImage(image.getId(), None)
     img_id = image.getId()
@@ -296,8 +295,8 @@ def load_rois(
             t_values = [theT.getValue()] if theT else list(size_t)
 
             # Make meshgrid of (t, z)
-            T, Z = np.meshgrid(t_values, z_values, indexing="ij")       # (T, Z)
-            tz = np.stack([T.ravel(), Z.ravel()], axis=1)               # (T*Z, 2)
+            T, Z = np.meshgrid(t_values, z_values, indexing="ij")  # (T, Z)
+            tz = np.stack([T.ravel(), Z.ravel()], axis=1)  # (T*Z, 2)
             count = len(tz)
 
             edge_color = shape.getStrokeColor()
@@ -310,9 +309,9 @@ def load_rois(
                     continue
                 coords_2d, meta, _ = parsed
 
-                tz_repeated = np.repeat(tz, len(coords_2d), axis=0)     # (T*Z*N, 2)
-                coords_tiled = np.tile(coords_2d, (count, 1))           # (T*Z*N, 2)
-                full_coords = np.hstack([tz_repeated, coords_tiled])    # (T*Z*N, 4)
+                tz_repeated = np.repeat(tz, len(coords_2d), axis=0)  # (T*Z*N, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))  # (T*Z*N, 2)
+                full_coords = np.hstack([tz_repeated, coords_tiled])  # (T*Z*N, 4)
 
                 # Reshape into list of shape instances (1 per tz)
                 repeated_coords = full_coords.reshape(count, len(coords_2d), 4)
@@ -321,9 +320,9 @@ def load_rois(
             else:
                 x = float(shape.getX().getValue())
                 y = float(shape.getY().getValue())
-                coords_2d = np.array([[y, x]])                          # (1, 2)
-                coords_tiled = np.tile(coords_2d, (count, 1))           # (T*Z, 2)
-                full_coords = np.hstack([tz, coords_tiled])             # (T*Z, 4)
+                coords_2d = np.array([[y, x]])  # (1, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))  # (T*Z, 2)
+                full_coords = np.hstack([tz, coords_tiled])  # (T*Z, 4)
                 all_coords.extend(full_coords)
 
             # Extend metadata
@@ -403,10 +402,12 @@ def parse_omero_shape(shape) -> Optional[LayerData]:
 
     elif shape_type == "PolygonI":
         points = shape.getPoints().getValue()
-        coords = np.array([
-            [float(y), float(x)]
-            for x, y, *_ in (p.split(",") for p in points.split(" "))
-        ])
+        coords = np.array(
+            [
+                [float(y), float(x)]
+                for x, y, *_ in (p.split(",") for p in points.split(" "))
+            ]
+        )
         meta = {"shape_type": "polygon", "name": "ROI_Polygon"}
         return coords, meta, "shapes"
 
