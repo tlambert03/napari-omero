@@ -21,10 +21,10 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 
 - GUI interface to browse remote OMERO data, with thumbnail previews.
 - Loads remote nD images from an OMERO server into napari
-- Upload annotsations (``Labels`, `Shapes` and `Points`) to OMERO.
+- Upload annotations (`Labels`, `Shapes` and `Points`) to OMERO.
 - Planes are loading on demand as sliders are moved ("lazy loading").
 - Loading of pyramidal images as napari multiscale layers
-- session management (login memory)
+- Session management (login memory)
 - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
 
@@ -174,7 +174,7 @@ Lambert](https://github.com/tlambert03/)
 
 ## release
 
-To psuh a release to PyPI, one of the maintainers needs to do, for example:
+To push a release to PyPI, one of the maintainers needs to do, for example:
 ```sh
 git tag -a v0.2.0 -m v0.2.0
 git push upstream --follow-tags
