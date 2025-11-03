@@ -2,12 +2,11 @@ import atexit
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Callable, Optional
 
-from qtpy.QtCore import QObject, Signal
-
 import omero.gateway
 from omero.clients import BaseClient
 from omero.gateway import BlitzGateway, BlitzObjectWrapper, PixelsWrapper
 from omero.util.sessions import SessionsStore
+from qtpy.QtCore import QObject, Signal
 
 SessionStats = tuple[BaseClient, str, int, int]
 

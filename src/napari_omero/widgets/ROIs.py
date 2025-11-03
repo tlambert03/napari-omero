@@ -4,10 +4,10 @@ import napari.viewer
 from magicgui import magic_factory
 from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
+from omero.cli import ProxyStringType
 
 from napari_omero.plugins.omero import save_rois
 from napari_omero.utils import lookup_obj
-from omero.cli import ProxyStringType
 
 from .gateway import QGateWay
 

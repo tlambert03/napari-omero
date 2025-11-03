@@ -37,7 +37,7 @@ class LoginForm(QDialog):
             lambda: [self._connect() if self.password.text() else None]
         )
 
-        host, user, uuid, port = self.gateway.get_current()
+        host, user, _uuid, port = self.gateway.get_current()
         self.host.setText(self.gateway._host or host or "")
         self.port.setText(self.gateway._port or port or "")
         self.username.setText(self.gateway._user or user or "")

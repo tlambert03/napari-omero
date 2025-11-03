@@ -7,13 +7,13 @@ import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
+from omero.cli import ProxyStringType
+from omero.gateway import BlitzGateway, ImageWrapper
+from omero.model import IObject
 from omero_marshal import get_encoder
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
 from napari_omero.widgets import QGateWay
-from omero.cli import ProxyStringType
-from omero.gateway import BlitzGateway, ImageWrapper
-from omero.model import IObject
 
 
 # @timer
