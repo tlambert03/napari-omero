@@ -353,15 +353,18 @@ def load_rois(
         if not load_points:  # specific metadata for shapes
             roi_layer_meta["name"] = f"OMERO ROIs {img_id}"
             roi_layer_meta["shape_type"] = all_shape_types
-            roi_layer_meta["edge_width"] = 1
+            roi_layer_meta["edge_width"] = [1] * len(all_coords)
             roi_layer_meta["edge_color"] = all_edge_colors
         else:  # specific metadata for points
             roi_layer_meta["name"] = f"OMERO Points {img_id}"
             roi_layer_meta["symbol"] = "o"
             roi_layer_meta["border_color"] = all_edge_colors
-            roi_layer_meta["size"] = 5
+            roi_layer_meta["size"] = [5] * len(all_coords)
 
-    return all_coords, roi_layer_meta
+    if load_points:
+        return [(all_coords, roi_layer_meta, "points")]
+    else:
+        return [(all_coords, roi_layer_meta, "shapes")]
 
 
 def omero_color_to_hex(color_val) -> str:

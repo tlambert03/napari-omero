@@ -33,12 +33,12 @@ def _init(widget):
         img_id = int(layer_name.split(":")[0])
 
         image_wrapper = gateway.conn.getObject("Image", img_id)
-        points_coords, points_meta = load_rois(
+        points_coords, points_meta, _ = load_rois(
             gateway.conn, image_wrapper, load_points=True
-        )
-        shapes_coords, shapes_meta = load_rois(
+        )[0]
+        shapes_coords, shapes_meta, _ = load_rois(
             gateway.conn, image_wrapper, load_points=False
-        )
+        )[0]
 
         if points_meta is None and shapes_meta is None:
             show_info(f"No ROIs or points found for OMERO image id {img_id}.")
