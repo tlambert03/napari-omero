@@ -276,7 +276,7 @@ def load_rois(
         # Loop through all shapes in each ROI
         for shape in roi.copyShapes():
             if shape is None:
-                show_warning("Encountered an empty (None) shape skipping.")
+                show_warning("Encountered an empty (None) shape, skipping.")
                 continue
             sh_type = shape.__class__.__name__
             if (sh_type != "PointI" and load_points) or (
