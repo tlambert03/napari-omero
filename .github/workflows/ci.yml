@@ -66,10 +66,10 @@ jobs:
       - name: Test
         run: pytest --color=yes --cov=napari_omero --cov-report=xml
 
-      - name: Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+#      - name: Codecov
+#        uses: codecov/codecov-action@v5
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   deploy:
     # this will run when you have tagged a commit, starting with "v*"
