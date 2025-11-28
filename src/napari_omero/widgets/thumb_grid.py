@@ -97,9 +97,7 @@ class ThumbGrid(QListWidget):
             self.select_image()
 
     def tooltip(self, wrapper) -> str:
-        """
-        Creates a table with the metadata provided by the wrapper.
-        """
+        """Creates a table with the metadata provided by the wrapper."""
         x = wrapper.getSizeX()
         y = wrapper.getSizeY()
         z = wrapper.getSizeZ()
