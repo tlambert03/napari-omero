@@ -13,7 +13,7 @@ def create_roi(image: ImageWrapper, shapes) -> RoiI:
     for shape in shapes:
         roi.addShape(shape)
     # Save the ROI (saves any linked shapes too)
-    return updateService.saveAndReturnObject(roi)
+    return updateService.saveAndReturnObject(roi, image._conn.SERVICE_OPTS)
 
 
 def save_labels(layer, image: ImageWrapper) -> list[RoiI]:
