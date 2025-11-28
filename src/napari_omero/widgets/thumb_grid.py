@@ -86,6 +86,7 @@ class ThumbGrid(QListWidget):
         item.setTextAlignment(
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
         )
+        item.setToolTip(self.tooltip(wrapper))
         item.wrapper = wrapper
         self._item_map[wrapper.getId()] = item
         self.addItem(item)
@@ -94,3 +95,23 @@ class ThumbGrid(QListWidget):
             and self._current_item.isImage()
         ):
             self.select_image()
+
+    def tooltip(self, wrapper) -> str:
+        """
+        Creates a table with the metadata provided by the wrapper.
+        """
+        x = wrapper.getSizeX()
+        y = wrapper.getSizeY()
+        z = wrapper.getSizeZ()
+        c = wrapper.getSizeC()
+        t = wrapper.getSizeT()
+        tooltip_html = f"""
+<h3>{wrapper.getName()}</h3>
+<table>
+<tr><td><b>ID:</b></td><td>{wrapper.getId()}</td></tr>
+<tr><td><b>Timepoints:</b></td><td>{t}</td></tr>
+<tr><td><b>Channels:</b></td><td>{c}</td></tr>
+<tr><td><b>Dimensions (ZYX):</b></td><td>{z} x {y} x {x} px</td></tr>
+</table>
+"""
+        return tooltip_html
