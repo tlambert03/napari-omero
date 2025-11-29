@@ -68,6 +68,8 @@ jobs:
         run: |
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
           .omero/compose up -d
+          echo "Giving OMERO server 90 seconds to initialize before checking status..."
+          sleep 90
           .omero/wait-on-login
 
       - name: Test with OMERO server
