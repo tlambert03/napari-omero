@@ -67,6 +67,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
+          echo 'OMERO_SERVER_SSL=4064:' >> .omero/.env
           .omero/compose up -d
 
           echo "### Waiting for OMERO TCP port (4064) to open..."
