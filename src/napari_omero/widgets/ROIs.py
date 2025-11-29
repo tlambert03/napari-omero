@@ -4,12 +4,12 @@ import napari.viewer
 from magicgui.widgets import ComboBox, Container, PushButton
 from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
-from omero.cli import ProxyStringType
 
 from napari_omero.plugins.loaders import load_rois
 from napari_omero.plugins.omero import save_rois
 from napari_omero.utils import lookup_obj
 from napari_omero.widgets.gateway import QGateWay
+from omero.cli import ProxyStringType
 
 
 def omero_roi_manager() -> Container:
