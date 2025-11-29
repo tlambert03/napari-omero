@@ -7,6 +7,7 @@ import numpy as np
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
+from napari.utils.notifications import show_warning
 from omero_marshal import get_encoder
 
 from napari_omero.utils import PIXEL_TYPES, lookup_obj, parse_omero_url, timer
@@ -241,3 +242,193 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
         pyramid.append(da.stack(t_stacks))
 
     return pyramid
+
+
+def load_rois(
+    conn: BlitzGateway, image: ImageWrapper, load_points: bool
+) -> list[LayerData]:
+    """Load ROIs from an OMERO image and formats their coordinates and metadata."""
+    roi_service = conn.getRoiService()
+    result = roi_service.findByImage(image.getId(), None)
+    img_id = image.getId()
+
+    # Lists to store properties for all shapes
+    all_coords = []
+    all_shape_types = []
+    all_comments = []
+    all_roi_ids = []
+    all_shape_ids = []
+    all_edge_colors = []
+    all_face_colors = []
+
+    # Get Z and T dimension ranges for the image
+    size_z = range(image.getSizeZ())
+    size_t = range(image.getSizeT())
+
+    # Get physical pixel sizes; default to 1 if not defined
+    size_x = image.getPixelSizeX() or 1
+    size_y = image.getPixelSizeY() or 1
+    pixel_size_z = image.getPixelSizeZ() or 1
+
+    # Loop through all ROIs
+    for roi in result.rois:
+        roi_id = roi.getId().getValue()
+        # Loop through all shapes in each ROI
+        for shape in roi.copyShapes():
+            if shape is None:
+                show_warning("Encountered an empty (None) shape, skipping.")
+                continue
+            sh_type = shape.__class__.__name__
+            if (sh_type != "PointI" and load_points) or (
+                sh_type == "PointI" and not load_points
+            ):
+                continue
+
+            shape_id = shape.getId().getValue()
+            labels = shape.getTextValue()
+            comment = labels.getValue() if labels else ""
+
+            # Use shape's Z/T if set, else apply to all slices (T, Z)
+            theZ = shape.getTheZ()
+            z_values = [theZ.getValue()] if theZ else list(size_z)
+            theT = shape.getTheT()
+            t_values = [theT.getValue()] if theT else list(size_t)
+
+            # Make meshgrid of (t, z)
+            T, Z = np.meshgrid(t_values, z_values, indexing="ij")  # (T, Z)
+            tz = np.stack([T.ravel(), Z.ravel()], axis=1)  # (T*Z, 2)
+            count = len(tz)
+
+            edge_color = shape.getStrokeColor()
+            fill_color = shape.getFillColor()
+            if not load_points:
+                # Parse shape to Napari-compatible format
+                parsed = parse_omero_shape(shape)
+                if parsed is None:
+                    show_warning(f"Unsupported OMERO shape skipped: {sh_type}")
+                    continue
+                coords_2d, meta, _ = parsed
+
+                tz_repeated = np.repeat(tz, len(coords_2d), axis=0)  # (T*Z*N, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))  # (T*Z*N, 2)
+                full_coords = np.hstack([tz_repeated, coords_tiled])  # (T*Z*N, 4)
+
+                # Reshape into list of shape instances (1 per tz)
+                repeated_coords = full_coords.reshape(count, len(coords_2d), 4)
+                all_coords.extend(repeated_coords)
+                all_shape_types.extend([meta["shape_type"]] * count)
+            else:
+                x = float(shape.getX().getValue())
+                y = float(shape.getY().getValue())
+                coords_2d = np.array([[y, x]])  # (1, 2)
+                coords_tiled = np.tile(coords_2d, (count, 1))  # (T*Z, 2)
+                full_coords = np.hstack([tz, coords_tiled])  # (T*Z, 4)
+                all_coords.extend(full_coords)
+
+            # Extend metadata
+            all_comments.extend([comment] * count)
+            all_roi_ids.extend([roi_id] * count)
+            all_shape_ids.extend([shape_id] * count)
+            all_edge_colors.extend([omero_color_to_hex(edge_color)] * count)
+            all_face_colors.extend([omero_color_to_hex(fill_color)] * count)
+
+    roi_layer_meta = None
+    if all_coords:
+        # generic metadata for points and shapes
+        roi_layer_meta = {
+            "face_color": all_face_colors,
+            "scale": (1, pixel_size_z, size_y, size_x),
+            "text": {
+                "string": "{comment}",
+                "size": 7,
+            },
+            "features": {
+                "comment": np.array(all_comments, dtype=object),
+                "roi_id": np.array(all_roi_ids, dtype=object),
+                "shape_id": np.array(all_shape_ids, dtype=object),
+                "image_id": np.full(len(all_coords), img_id, dtype=int),
+            },
+        }
+
+        if not load_points:  # specific metadata for shapes
+            roi_layer_meta["name"] = f"OMERO ROIs {img_id}"
+            roi_layer_meta["shape_type"] = all_shape_types
+            roi_layer_meta["edge_width"] = [1] * len(all_coords)
+            roi_layer_meta["edge_color"] = all_edge_colors
+        else:  # specific metadata for points
+            roi_layer_meta["name"] = f"OMERO Points {img_id}"
+            roi_layer_meta["symbol"] = "o"
+            roi_layer_meta["border_color"] = all_edge_colors
+            roi_layer_meta["size"] = [5] * len(all_coords)
+
+    if load_points:
+        return [(all_coords, roi_layer_meta, "points")]
+    else:
+        return [(all_coords, roi_layer_meta, "shapes")]
+
+
+def omero_color_to_hex(color_val) -> str:
+    """Convert OMERO ARGB int to hex color string for Napari."""
+    if color_val is None:
+        return "white"
+
+    if hasattr(color_val, "getValue"):
+        color_val = color_val.getValue()
+
+    # Convert signed to unsigned 32-bit
+    val = color_val & 0xFFFFFFFF
+
+    # Extract RGBA
+    r = (val >> 24) & 0xFF
+    g = (val >> 16) & 0xFF
+    b = (val >> 8) & 0xFF
+
+    hexa_decimal = f"#{r:02X}{g:02X}{b:02X}"
+
+    return hexa_decimal
+
+
+def parse_omero_shape(shape) -> Optional[LayerData]:
+    """Convert an OMERO shape into a Napari-compatible format."""
+    shape_type = shape.__class__.__name__
+    if shape_type == "RectangleI":
+        # Get position and size
+        x = float(shape.getX().getValue())
+        y = float(shape.getY().getValue())
+        w = float(shape.getWidth().getValue())
+        h = float(shape.getHeight().getValue())
+
+        # Coordinates for the rectangle corners in (y, x)
+        coords = np.array([[y, x], [y, x + w], [y + h, x + w], [y + h, x]])
+        meta = {"shape_type": "rectangle", "name": "ROI_Rectangle"}
+        return coords, meta, "shapes"
+
+    elif shape_type == "PolygonI":
+        points = shape.getPoints().getValue()
+        coords = np.array(
+            [
+                [float(y), float(x)]
+                for x, y, *_ in (p.split(",") for p in points.split(" "))
+            ]
+        )
+        meta = {"shape_type": "polygon", "name": "ROI_Polygon"}
+        return coords, meta, "shapes"
+
+    elif shape_type == "EllipseI":
+        cx = float(shape.getX().getValue())
+        cy = float(shape.getY().getValue())
+        rx = float(shape.getRadiusX().getValue())
+        ry = float(shape.getRadiusY().getValue())
+
+        # Compute four corner points of the bounding box
+        top_left = [cy - ry, cx - rx]
+        top_right = [cy - ry, cx + rx]
+        bottom_right = [cy + ry, cx + rx]
+        bottom_left = [cy + ry, cx - rx]
+
+        coords = np.array([top_left, top_right, bottom_right, bottom_left])
+        meta = {"shape_type": "ellipse", "name": "ROI_Ellipse"}
+        return coords, meta, "shapes"
+
+    # Return None if shape type not supported
+    return None

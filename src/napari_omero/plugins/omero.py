@@ -168,6 +168,8 @@ def save_rois(viewer, image):
     >>> save_rois(viewer, omero_image).
     """
     conn = image._conn
+    group_id = image.getDetails().getGroup().getId()
+    conn.SERVICE_OPTS.setOmeroGroup(group_id)
 
     for layer in viewer.layers:
         if type(layer) is points_layer:
@@ -282,7 +284,7 @@ def create_roi(conn, img_id, shapes):
     roi.setImage(ImageI(img_id, False))
     for shape in shapes:
         roi.addShape(shape)
-    return updateService.saveAndReturnObject(roi)
+    return updateService.saveAndReturnObject(roi, conn.SERVICE_OPTS)
 
 
 class NonCachedPixelsWrapper(PixelsWrapper):

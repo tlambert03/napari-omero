@@ -16,7 +16,7 @@ jobs:
   check-manifest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: pipx run check-manifest
 
   test:
@@ -46,7 +46,7 @@ jobs:
             python-version: "3.11"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: "latest"
@@ -77,10 +77,10 @@ jobs:
         if: runner.os != 'Linux'
         run: pytest ./tests/local  --color=yes --cov=napari_omero --cov-report=xml
 
-      - name: Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+#      - name: Codecov
+#        uses: codecov/codecov-action@v5
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   deploy:
     # this will run when you have tagged a commit, starting with "v*"
@@ -93,12 +93,12 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
