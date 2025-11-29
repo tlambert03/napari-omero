@@ -1,3 +1,21 @@
+# This code is derived from the conftest.py file from the ezomero library,
+# which is licensed under the GNU General Public License v2.0 as published by
+# the Free Software Foundation.
+#
+# Copyright (c) 2020-2025, Erick Ratamero, Dave Mellert, and contributors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# For the original code, please see:
+# https://github.com/erickmartins/ezomero
 import os
 import subprocess
 
