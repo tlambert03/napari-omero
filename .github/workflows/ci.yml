@@ -68,20 +68,9 @@ jobs:
         run: |
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
           echo 'OMERO_SERVER_SSL=4064:' >> .omero/.env
+          echo 'OMERO_WEB_PORT=4080:' >> .omero/.env
           .omero/compose up -d
-
-          echo "### Waiting for OMERO TCP port (4064) to open..."
-          for i in {1..90}; do
-            if nc -z localhost 4064; then
-              echo "Port 4064 is open. Continuing..."
-              break
-            fi
-            if [ $i -eq 90 ]; then
-              echo "::error::Port 4064 did not open within 3 minutes."
-              exit 1
-            fi
-            sleep 2
-          done
+          .omero/wait-on-login
 
       - name: Test with OMERO server
         if: runner.os == 'Linux'
