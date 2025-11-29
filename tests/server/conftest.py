@@ -33,8 +33,8 @@ from omero.plugins.user import UserControl
 DEFAULT_OMERO_USER = "root"
 DEFAULT_OMERO_PASS = "omero"
 DEFAULT_OMERO_HOST = "localhost"
-DEFAULT_OMERO_WEB_HOST = "http://localhost:5080"
-DEFAULT_OMERO_PORT = "6064"
+DEFAULT_OMERO_WEB_HOST = "http://localhost:4080"
+DEFAULT_OMERO_PORT = "4064"
 DEFAULT_OMERO_SECURE = 1
 
 # [[group, permissions], ...]
