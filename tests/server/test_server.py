@@ -14,7 +14,9 @@ def test_omero_browser_login(make_napari_viewer, omero_params):
     widget = OMEROWidget()
     viewer.window.add_dock_widget(widget)
 
-    widget.gateway.create_session(host=host, port=port, username=user, password=password)
+    widget.gateway.create_session(
+        host=host, port=port, username=user, password=password
+    )
 
     assert widget.gateway.conn is not None
     assert widget.gateway.conn.isConnected()
