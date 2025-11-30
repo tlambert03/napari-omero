@@ -19,10 +19,8 @@
 #
 # Note that these fixtures are only used for the OMERO server tests.
 import os
-import subprocess
 
 import ezomero
-import numpy as np
 import pytest
 
 from omero.cli import CLI
