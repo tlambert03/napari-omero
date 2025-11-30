@@ -67,6 +67,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           git clone https://github.com/openmicroscopy/omero-test-infra .omero
+          # ensure the ports are bound correctly
+          # see also: https://github.com/ome/omero-test-infra/issues/77
           echo 'OMERO_SERVER_SSL=4064:' >> .omero/.env
           echo 'OMERO_WEB_PORT=4080:' >> .omero/.env
           .omero/compose up -d

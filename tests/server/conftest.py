@@ -16,6 +16,8 @@
 #
 # For the original code, please see:
 # https://github.com/erickmartins/ezomero
+#
+# Note that these fixtures are only used for the OMERO server tests.
 import os
 import subprocess
 
@@ -210,35 +212,3 @@ def conn(omero_params):
     conn.connect()
     yield conn
     conn.close()
-
-
-@pytest.fixture(scope="session")
-def image_fixture():
-    test_image = np.zeros((200, 201, 20, 3, 1), dtype=np.uint8)
-    test_image[0:100, 0:100, 0:10, 0, :] = 255
-    test_image[0:100, 0:100, 11:20, 1, :] = 255
-    test_image[101:200, 101:201, :, 2, :] = 255
-    return test_image
-
-
-@pytest.fixture(scope="session")
-def pyramid_fixture(conn, omero_params):
-    session_uuid = conn.getSession().getUuid().val
-    user = omero_params[0]
-    host = omero_params[2]
-    port = str(omero_params[4])
-    imp_cmd = [
-        "omero",
-        "import",
-        "tests/data/test_pyramid.ome.tif",
-        "-k",
-        session_uuid,
-        "-u",
-        user,
-        "-s",
-        host,
-        "-p",
-        port,
-    ]
-    process = subprocess.Popen(imp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdoutval, stderrval = process.communicate()

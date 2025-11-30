@@ -14,12 +14,11 @@ def test_omero_browser_login(make_napari_viewer, omero_params, qtbot):
     widget = OMEROWidget()
     viewer.window.add_dock_widget(widget)
 
-    # Wait for the 'connected' signal to be emitted after starting the session
+    # Wait for the 'connected' signal to be emitted
     with qtbot.waitSignal(widget.gateway.connected, timeout=10000):
         widget.gateway.create_session(
             host=host, port=port, username=user, password=password
         )
 
-    # Now that the signal has been received, the connection object should exist
     assert widget.gateway.conn is not None
     assert widget.gateway.conn.isConnected()
