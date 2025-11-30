@@ -79,7 +79,7 @@ class ThumbGrid(QListWidget):
         img = QImage()
         img.loadFromData(bytes_)
         icon = QIcon(QPixmap.fromImage(img))
-        name = f"{wrapper.getId()}: {wrapper.getName()}"
+        name = f"ID {wrapper.getId()}: {wrapper.getName()}"
         if len(name) > 18:
             name = f"{name[:15]}..."
         item = QListWidgetItem(icon, name)
