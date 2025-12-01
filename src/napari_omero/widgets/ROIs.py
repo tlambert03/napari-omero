@@ -1,7 +1,7 @@
 import warnings
 
 import napari.viewer
-from magicgui.widgets import ComboBox, Container, PushButton
+from magicgui.widgets import Container, PushButton, create_widget
 from napari.layers import Image, Labels
 from napari.utils.notifications import show_info
 
@@ -18,9 +18,7 @@ def omero_roi_manager() -> Container:
     This widget handles both loading ROI from OMERO, as well as saving
     napari annotations to OMERO as ROI.
     """
-    omero_image_combobox = ComboBox(
-        label="OMERO Image", annotation=Image, name="omero_image"
-    )
+    omero_image_combobox = create_widget(label="OMERO Image", annotation=Image)
     load_button = PushButton(text="Load Annotations from OMERO")
     save_button = PushButton(text="Upload Annotations to OMERO")
 
