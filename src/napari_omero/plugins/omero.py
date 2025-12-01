@@ -3,13 +3,10 @@ from functools import wraps
 
 import napari
 import numpy
+import omero.clients
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
 from napari.layers.shapes.shapes import Shapes as shapes_layer
-from qtpy.QtWidgets import QPushButton
-
-import omero.clients
-from napari_omero.utils import lookup_obj, obj_to_proxy_string
 from omero.cli import CLI, BaseControl, ProxyStringType
 from omero.gateway import BlitzGateway, PixelsWrapper
 from omero.model import (
@@ -23,6 +20,9 @@ from omero.model import (
     RoiI,
 )
 from omero.rtypes import rdouble, rint, rstring
+from qtpy.QtWidgets import QPushButton
+
+from napari_omero.utils import lookup_obj, obj_to_proxy_string
 
 from .masks import save_labels
 
