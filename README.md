@@ -25,7 +25,7 @@ as well as command line interface extensions for both OMERO and napari CLIs.
   - Loading of pyramidal images as napari multiscale layers
   - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
-- Load ROI from OMERO server into napari as `Shapes` or `Points`
+- Load ROIs from OMERO server into napari as `Shapes` or `Points`
 - Upload napari annotation Layers (`Labels`, `Shapes` and `Points`) to OMERO.
 - Session management (login memory)
 
