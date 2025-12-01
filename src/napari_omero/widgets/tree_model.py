@@ -1,10 +1,9 @@
 import itertools
 from typing import Any, Optional
 
+from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
 from qtpy.QtCore import QModelIndex, Qt
 from qtpy.QtGui import QStandardItem, QStandardItemModel
-
-from omero.gateway import BlitzObjectWrapper, _DatasetWrapper, _ImageWrapper
 
 from .gateway import QGateWay
 
