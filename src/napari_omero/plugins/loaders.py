@@ -340,20 +340,19 @@ def load_rois(
 
     roi_layer_meta = None
     if all_coords:
-        features = pd.DataFrame({
+        features = pd.DataFrame(
+            {
                 "comment": np.array(all_comments, dtype=object),
                 "roi": all_roi_ids,
                 "shape": all_shape_ids,
                 "image": np.full(len(all_coords), img_id, dtype=int),
-            })
+            }
+        )
         if load_features:
             features_omero = load_tables(conn, image)
             # merge on roi id
             features = pd.merge(
-                features,
-                features_omero,
-                how="left",
-                on=['roi', 'image']
+                features, features_omero, how="left", on=["roi", "image"]
             )
 
             # Convert magic columns to categorical
@@ -388,32 +387,39 @@ def load_rois(
         return [(all_coords, roi_layer_meta, "shapes")]
 
 
-def load_tables(
-    conn: BlitzGateway, image_wrapper: ImageWrapper) -> pd.DataFrame:
+def load_tables(conn: BlitzGateway, image_wrapper: ImageWrapper) -> pd.DataFrame:
     """Load and merge all OMERO tables associated with the given image."""
     import omero2pandas
 
     # Get all possible annotation IDs from project, dataset, and image
-    annotation_ids = [ann.getId() for ann in image_wrapper.getProject().listAnnotations()] + \
-                    [ann.getId() for ann in image_wrapper.getParent().listAnnotations()] + \
-                    [ann.getId() for ann in image_wrapper.listAnnotations()]
+    annotation_ids = (
+        [ann.getId() for ann in image_wrapper.getProject().listAnnotations()]
+        + [ann.getId() for ann in image_wrapper.getParent().listAnnotations()]
+        + [ann.getId() for ann in image_wrapper.listAnnotations()]
+    )
 
     annotation_ids = list(set(annotation_ids))  # Remove duplicates
 
     # Load only tables that have 'roi' column
     tables = []
 
-
-    for i, annotation_id in enumerate(annotation_ids):
-        columns = omero2pandas.get_table_columns(annotation_id=annotation_id, omero_connector=image_wrapper._conn)
+    for _i, annotation_id in enumerate(annotation_ids):
+        columns = omero2pandas.get_table_columns(
+            annotation_id=annotation_id, omero_connector=image_wrapper._conn
+        )
         if "roi" not in columns:
             continue
-            
-        table = omero2pandas.read_table(annotation_id=annotation_id, omero_connector=image_wrapper._conn)
+
+        table = omero2pandas.read_table(
+            annotation_id=annotation_id, omero_connector=image_wrapper._conn
+        )
         print(annotation_id)
-        
+
         # Add suffix to non-magic columns
-        table.columns = [col if col in MAGIC_COLUMNS else f"{col}_table{annotation_id}" for col in table.columns]
+        table.columns = [
+            col if col in MAGIC_COLUMNS else f"{col}_table{annotation_id}"
+            for col in table.columns
+        ]
         tables.append(table)
 
     # Merge all tables
@@ -427,6 +433,7 @@ def load_tables(
             df = pd.merge(df, table, on=MAGIC_COLUMNS)
 
     return df
+
 
 def omero_color_to_hex(color_val) -> str:
     """Convert OMERO ARGB int to hex color string for Napari."""
