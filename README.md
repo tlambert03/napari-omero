@@ -20,16 +20,17 @@ as well as command line interface extensions for both OMERO and napari CLIs.
 ## Features
 
 - GUI interface to browse remote OMERO data, with thumbnail previews.
-- Loads remote nD images from an OMERO server into napari
-- Upload annotations (`Labels`, `Shapes` and `Points`) to OMERO.
-- Planes are loading on demand as sliders are moved ("lazy loading").
-- Loading of pyramidal images as napari multiscale layers
-- Session management (login memory)
-- OMERO rendering settings (contrast limits, colormaps, active channels, current
+- Load remote nD images from an OMERO server into napari
+  - Planes are loading on demand as sliders are moved ("lazy loading").
+  - Loading of pyramidal images as napari multiscale layers
+  - OMERO rendering settings (contrast limits, colormaps, active channels, current
   Z/T position) are applied in napari
+- Load ROIs from OMERO server into napari as `Shapes` or `Points`
+- Upload napari annotation Layers (`Labels`, `Shapes` and `Points`) to OMERO.
+- Session management (login memory)
 
 > [!NOTE]
-> The user experience when working with remote images, particularly large multiscale (pyramidal) ones, like whole slide images, can be significantly improved by using napari 0.5.0 or newer and enabling the experimental asynchronous mode (n the GUI in `Preferences > Experimental > Render Images Asynchronously` or with the environmental variable `NAPARI_ASYNC=1`).
+> The user experience when working with remote images, particularly large multiscale (pyramidal) ones, like whole slide images, can be significantly improved by enabling the experimental asynchronous mode (n the GUI in `Preferences > Experimental > Render Images Asynchronously` or with the environmental variable `NAPARI_ASYNC=1`).
 
 ### as a napari dock widget
 
@@ -92,7 +93,7 @@ omero napari view Image:1
 ## installation
 
 While this package supports anything above python 3.9,
-In practice, python support is limited by `omero-py` and `zeroc-ice`,
+in practice, python support is limited by `omero-py` and `zeroc-ice`,
 compatibility, which is limited to python <=3.12 at the time of writing.
 
 ### from conda
