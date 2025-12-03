@@ -4,6 +4,7 @@ from typing import Optional
 
 import dask.array as da
 import numpy as np
+import pandas as pd
 from dask.delayed import delayed
 from napari.types import LayerData
 from napari.utils.colormaps import ensure_colormap
@@ -15,6 +16,8 @@ from napari_omero.widgets import QGateWay
 from omero.cli import ProxyStringType
 from omero.gateway import BlitzGateway, ImageWrapper
 from omero.model import IObject
+
+MAGIC_COLUMNS = ["roi", "image", "project", "dataset", "label"]
 
 
 # @timer
@@ -245,7 +248,10 @@ def get_pyramid_lazy(image: ImageWrapper) -> list[da.Array]:
 
 
 def load_rois(
-    conn: BlitzGateway, image: ImageWrapper, load_points: bool
+    conn: BlitzGateway,
+    image: ImageWrapper,
+    load_points: bool,
+    load_features: bool = True,
 ) -> list[LayerData]:
     """Load ROIs from an OMERO image and formats their coordinates and metadata."""
     roi_service = conn.getRoiService()
@@ -334,6 +340,25 @@ def load_rois(
 
     roi_layer_meta = None
     if all_coords:
+        features = pd.DataFrame(
+            {
+                "comment": np.array(all_comments, dtype=object),
+                "roi": all_roi_ids,
+                "shape": all_shape_ids,
+                "image": np.full(len(all_coords), img_id, dtype=int),
+            }
+        )
+        if load_features:
+            features_omero = load_tables(conn, image)
+            # merge on roi id
+            features = pd.merge(
+                features, features_omero, how="left", on=["roi", "image"]
+            )
+
+            # Convert magic columns to categorical
+        for col in MAGIC_COLUMNS:
+            if col in features.columns:
+                features[col] = pd.Categorical(features[col])
         # generic metadata for points and shapes
         roi_layer_meta = {
             "face_color": all_face_colors,
@@ -342,12 +367,7 @@ def load_rois(
                 "string": "{comment}",
                 "size": 7,
             },
-            "features": {
-                "comment": np.array(all_comments, dtype=object),
-                "roi_id": np.array(all_roi_ids, dtype=object),
-                "shape_id": np.array(all_shape_ids, dtype=object),
-                "image_id": np.full(len(all_coords), img_id, dtype=int),
-            },
+            "features": features,
         }
 
         if not load_points:  # specific metadata for shapes
@@ -365,6 +385,54 @@ def load_rois(
         return [(all_coords, roi_layer_meta, "points")]
     else:
         return [(all_coords, roi_layer_meta, "shapes")]
+
+
+def load_tables(conn: BlitzGateway, image_wrapper: ImageWrapper) -> pd.DataFrame:
+    """Load and merge all OMERO tables associated with the given image."""
+    import omero2pandas
+
+    # Get all possible annotation IDs from project, dataset, and image
+    annotation_ids = (
+        [ann.getId() for ann in image_wrapper.getProject().listAnnotations()]
+        + [ann.getId() for ann in image_wrapper.getParent().listAnnotations()]
+        + [ann.getId() for ann in image_wrapper.listAnnotations()]
+    )
+
+    annotation_ids = list(set(annotation_ids))  # Remove duplicates
+
+    # Load only tables that have 'roi' column
+    tables = []
+
+    for _i, annotation_id in enumerate(annotation_ids):
+        columns = omero2pandas.get_table_columns(
+            annotation_id=annotation_id, omero_connector=image_wrapper._conn
+        )
+        if "roi" not in columns:
+            continue
+
+        table = omero2pandas.read_table(
+            annotation_id=annotation_id, omero_connector=image_wrapper._conn
+        )
+        print(annotation_id)
+
+        # Add suffix to non-magic columns
+        table.columns = [
+            col if col in MAGIC_COLUMNS else f"{col}_table{annotation_id}"
+            for col in table.columns
+        ]
+        tables.append(table)
+
+    # Merge all tables
+    if len(tables) == 0:
+        df = pd.DataFrame()
+    elif len(tables) == 1:
+        df = tables[0]
+    else:
+        df = tables[0]
+        for table in tables[1:]:
+            df = pd.merge(df, table, on=MAGIC_COLUMNS)
+
+    return df
 
 
 def omero_color_to_hex(color_val) -> str:
