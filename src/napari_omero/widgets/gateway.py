@@ -178,14 +178,18 @@ class NonCachedPixelsWrapper(PixelsWrapper):
         """
         Creates RawPixelsStore and sets the id etc.
 
-        This overrides the superclass behaviour to make sure that
-        we don't re-use RawPixelStore in multiple processes since
-        the Store may be closed in 1 process while still needed elsewhere.
-        This is needed when napari requests may planes simultaneously,
-        e.g. when switching to 3D view.
+        This overrides the superclass behaviour in two ways:
+
+        - Each call gets its own RawPixelsStore. The superclass reuses one store
+          per connection, which may be closed in one thread while still needed
+          in another, e.g. when napari requests many planes at once (3D view).
+        - The store is opened with a cross-group context (omero.group=-1), not
+          the connection's shared SERVICE_OPTS.
         """
         ps = self._conn.c.sf.createRawPixelsStore()
-        ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
+        ctx = self._conn.SERVICE_OPTS.copy()  # copy: never mutate the shared opts
+        ctx.setOmeroGroup(-1)
+        ps.setPixelsId(self._obj.id.val, True, ctx)
         return ps
 
 

@@ -3,12 +3,11 @@ from functools import wraps
 
 import napari
 import numpy
-import omero.clients
 from napari.layers.labels.labels import Labels as labels_layer
 from napari.layers.points.points import Points as points_layer
 from napari.layers.shapes.shapes import Shapes as shapes_layer
 from omero.cli import CLI, BaseControl, ProxyStringType
-from omero.gateway import BlitzGateway, PixelsWrapper
+from omero.gateway import BlitzGateway
 from omero.model import (
     EllipseI,
     ImageI,
@@ -285,29 +284,6 @@ def create_roi(conn, img_id, shapes):
     for shape in shapes:
         roi.addShape(shape)
     return updateService.saveAndReturnObject(roi, conn.SERVICE_OPTS)
-
-
-class NonCachedPixelsWrapper(PixelsWrapper):
-    """Extend gateway.PixelWrapper to override _prepareRawPixelsStore."""
-
-    def _prepareRawPixelsStore(self):
-        """
-        Creates RawPixelsStore and sets the id etc.
-
-        This overrides the superclass behaviour to make sure that
-        we don't re-use RawPixelStore in multiple processes since
-        the Store may be closed in 1 process while still needed elsewhere.
-        This is needed when napari requests may planes simultaneously,
-        e.g. when switching to 3D view.
-        """
-        ps = self._conn.c.sf.createRawPixelsStore()
-        ps.setPixelsId(self._obj.id.val, True, self._conn.SERVICE_OPTS)
-        return ps
-
-
-omero.gateway.PixelsWrapper = NonCachedPixelsWrapper
-# Update the BlitzGateway to use our NonCachedPixelsWrapper
-omero.gateway.refreshWrappers()
 
 
 if __name__ == "__main__":
