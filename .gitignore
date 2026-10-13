@@ -136,3 +136,6 @@ src/napari_omero/_version.py
 pixi.lock
 
 uv.lock
+
+# omero-test-infra checkout for server tests (tests/server)
+.omero/

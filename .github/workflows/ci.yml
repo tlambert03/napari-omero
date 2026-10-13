@@ -65,8 +65,43 @@ jobs:
       - run: pixi update -e ${{ matrix.env }} # latest deps instead of pixi.lock
       - run: pixi run -e ${{ matrix.env }} test --color=yes
 
+  # Integration tests against a real OMERO server (tests/server). One job, so
+  # the server stack starts once. omero-test-infra only provides the server;
+  # pytest runs on the host with the same uv setup as test-uv.
+  test-server:
+    name: server tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out napari-omero
+        uses: actions/checkout@v7
+      - name: Check out omero-test-infra (into .omero)
+        uses: actions/checkout@v7
+        with:
+          repository: ome/omero-test-infra
+          path: .omero
+          ref: c8a0015b0ce72ee0a49e6968af33de10ea00bc77 # master as of 2025-12
+      - name: Start OMERO
+        run: |
+          # fixed host port, so pytest can reach localhost:4064 (default is random)
+          echo 'OMERO_SERVER_SSL=4064:' >> .omero/.env
+          # server + database only; the tests don't use OMERO.web
+          .omero/compose up -d db omero
+      - uses: pyvista/setup-headless-display-action@v5
+        with:
+          qt: true
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv run python .omero/wait-on-login
+      - run: uv run --upgrade pytest tests/server --color=yes
+        env:
+          OMERO_TEST_REQUIRE_SERVER: "1" # fail, not skip, if the server isn't up
+
   deploy:
     # runs when a tag starting with "v" is pushed; publishes via PyPI trusted publishing
+    # TODO: add test-server to `needs` once it has been reliably green for a while,
+    # so a flaky server startup can't block releases in the meantime
     needs: [test-uv, test-pixi]
     if: success() && startsWith(github.ref, 'refs/tags/') && github.repository == 'ome/napari-omero'
     runs-on: ubuntu-latest

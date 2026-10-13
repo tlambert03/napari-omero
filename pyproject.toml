@@ -70,6 +70,7 @@ all = ["napari[all]"]
 test = [
     "pytest",
     "pytest-cov",
+    "ezomero",
     "pytest-qt",
     "pytest-regressions",
     "pywin32; sys_platform == 'win32'",
@@ -274,6 +275,9 @@ filterwarnings = [
     # warns when compiling them on first import (a SyntaxWarning on 3.12+,
     # a DeprecationWarning before that, so no category is given)
     "ignore:.*invalid escape sequence",
+    # omero-py's callbacks still call threading.Event.isSet() (e.g. when
+    # deleteObjects(..., wait=True) waits); only ignored when raised from omero
+    "ignore:isSet:DeprecationWarning:omero",
 ]
 
 
